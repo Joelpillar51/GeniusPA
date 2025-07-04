@@ -27,7 +27,7 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
   const durationInterval = useRef<NodeJS.Timeout | null>(null);
   
   const { addRecording, updateRecording } = useMeetingStore();
-  const { canRecord, addRecordingUsage, limits } = useSubscriptionStore();
+  const { canRecord, addRecordingUsage, limits, plan } = useSubscriptionStore();
 
   const startRecording = async () => {
     // Check subscription limits
@@ -240,9 +240,12 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
       )}
       
       {/* Recording Limit Info */}
-      {limits.maxRecordingDuration !== -1 && !isRecording && !isProcessing && (
+      {!isRecording && !isProcessing && (
         <Text className="mt-4 text-gray-500 text-sm text-center">
-          {Math.floor(limits.maxRecordingDuration / 60)} min limit • Free Plan
+          {limits.maxRecordingDuration === -1 
+            ? `Unlimited • ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`
+            : `${Math.floor(limits.maxRecordingDuration / 60)} min limit • ${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`
+          }
         </Text>
       )}
       
