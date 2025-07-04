@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { processUploadedDocument, ProcessedDocument, getSupportedFileTypes } from '../utils/simpleDocumentProcessor';
-import { processDocumentFromUrl, UrlProcessingResult, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
+import { processSimpleUrl, SimpleUrlResult } from '../utils/simpleUrlProcessor';
+import { testUrlProcessing } from '../utils/testUrlProcessor';
 import { 
   createDocumentChatSession, 
   getDocumentChatSession, 
@@ -20,10 +21,12 @@ export const DocumentChatScreen: React.FC = () => {
   // Debug log
   useEffect(() => {
     console.log('DocumentChatScreen mounted successfully');
+    // Run URL test on mount
+    testUrlProcessing().catch(console.error);
   }, []);
   
   // State management
-  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | UrlProcessingResult | null>(null);
+  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | SimpleUrlResult | null>(null);
   const [chatSession, setChatSession] = useState<DocumentChatSession | null>(null);
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -43,6 +46,8 @@ export const DocumentChatScreen: React.FC = () => {
   }, [chatSession?.messages.length]);
 
   const handleUrlSubmit = async () => {
+    console.log('URL submit clicked with input:', urlInput);
+    
     if (!urlInput.trim()) {
       Alert.alert('Error', 'Please enter a valid URL');
       return;
@@ -51,24 +56,38 @@ export const DocumentChatScreen: React.FC = () => {
     setIsProcessingDocument(true);
     
     try {
-      // Process the URL and extract content
-      const processedUrl = await processDocumentFromUrl(urlInput.trim());
+      console.log('Starting URL processing...');
+      // Process the URL and extract content using the simpler processor
+      const result = await processSimpleUrl(urlInput.trim());
       
-      if (processedUrl.success && processedUrl.extractedText) {
+      console.log('URL processing result:', result);
+      
+      if (result.success && result.content) {
+        console.log('URL processing successful, creating chat session...');
+        
+        // Create a document-like object for consistency
+        const urlDocument: SimpleUrlResult & { id: string; extractedText: string } = {
+          ...result,
+          id: `url_${Date.now()}`,
+          extractedText: result.content
+        };
+        
         // Create chat session with extracted content
         const session = createDocumentChatSession(
-          processedUrl.id,
-          processedUrl.title,
-          processedUrl.extractedText
+          urlDocument.id,
+          result.title,
+          result.content
         );
         
-        setCurrentDocument(processedUrl);
+        console.log('Chat session created successfully');
+        
+        setCurrentDocument(urlDocument);
         setChatSession(session);
         setUrlInput('');
         
         // Generate suggested questions
         try {
-          const suggestions = await generateSuggestedQuestions(processedUrl.extractedText);
+          const suggestions = await generateSuggestedQuestions(result.content);
           setSuggestedQuestions(suggestions);
           setShowSuggestions(true);
         } catch (error) {
@@ -77,15 +96,16 @@ export const DocumentChatScreen: React.FC = () => {
         
         Alert.alert(
           'URL Processed Successfully!',
-          `Content from "${processedUrl.title}" has been extracted and is ready for AI chat.`,
+          `Content from "${result.title}" has been extracted and is ready for AI chat.`,
           [{ text: 'Start Chatting', style: 'default' }]
         );
         
       } else {
         // Processing failed
+        console.log('URL processing failed:', result.error);
         Alert.alert(
           'URL Processing Failed',
-          processedUrl.error || 'Could not extract content from this URL. Please try:\n\n• Checking the URL is correct and accessible\n• Using a different webpage or document URL\n• Uploading a file instead',
+          result.error || 'Could not extract content from this URL. Please try:\n\n• Checking the URL is correct and accessible\n• Using a different webpage\n• Uploading a file instead',
           [{ text: 'Try Again', style: 'default' }]
         );
       }
@@ -93,7 +113,7 @@ export const DocumentChatScreen: React.FC = () => {
       console.error('URL processing error:', error);
       Alert.alert(
         'Processing Error',
-        'Failed to process the URL. Please check your internet connection and try again.',
+        `Failed to process the URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
         [{ text: 'OK', style: 'default' }]
       );
     } finally {
@@ -251,7 +271,6 @@ export const DocumentChatScreen: React.FC = () => {
 
   if (!currentDocument || !chatSession) {
     const supportedTypes = getSupportedFileTypes();
-    const supportedUrls = getSupportedUrlTypes();
     
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -372,27 +391,47 @@ export const DocumentChatScreen: React.FC = () => {
 
                   {/* Example URLs */}
                   <View className="mt-6 w-full max-w-md">
-                    <Text className="text-sm font-medium text-gray-700 mb-3">💡 Try these example URLs:</Text>
+                    <Text className="text-sm font-medium text-gray-700 mb-3">💡 Try these test URLs:</Text>
                     {[
-                      'https://en.wikipedia.org/wiki/Artificial_intelligence',
-                      'https://docs.expo.dev/guides/overview/',
-                      'https://github.com/facebook/react-native/blob/main/README.md'
+                      'https://httpbin.org/html',
+                      'https://example.com',
+                      'https://httpbin.org/json'
                     ].map((exampleUrl, index) => (
                       <Pressable
                         key={index}
-                        onPress={() => setUrlInput(exampleUrl)}
+                        onPress={() => {
+                          console.log('Setting URL input to:', exampleUrl);
+                          setUrlInput(exampleUrl);
+                        }}
                         className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2"
                       >
                         <Text className="text-blue-600 text-sm">{exampleUrl}</Text>
                       </Pressable>
                     ))}
+                    
+                    {/* Debug button */}
+                    <Pressable
+                      onPress={() => {
+                        console.log('Running URL test...');
+                        testUrlProcessing();
+                      }}
+                      className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-2"
+                    >
+                      <Text className="text-yellow-800 text-sm">🔧 Test URL Processing</Text>
+                    </Pressable>
                   </View>
                 </View>
 
                 {/* Supported URL Types */}
                 <View className="bg-gray-50 rounded-2xl p-6 mb-6">
                   <Text className="text-lg font-bold text-gray-900 mb-4">What URLs Work Best</Text>
-                  {supportedUrls.supported.map((type, index) => (
+                  {[
+                    'Web articles and blog posts',
+                    'Wikipedia articles', 
+                    'Documentation pages',
+                    'GitHub README files',
+                    'News articles and text content'
+                  ].map((type, index) => (
                     <View key={index} className="flex-row items-center mb-2">
                       <Ionicons name="checkmark-circle" size={20} color="#3B82F6" />
                       <Text className="text-gray-700 ml-2">{type}</Text>
@@ -401,19 +440,14 @@ export const DocumentChatScreen: React.FC = () => {
                 </View>
 
                 {/* URL Tips */}
-                <View className="bg-orange-50 rounded-2xl p-6 mb-6">
-                  <Text className="text-lg font-bold text-orange-900 mb-4">⚠️ Not Supported</Text>
-                  {supportedUrls.notSupported.map((type, index) => (
-                    <Text key={index} className="text-orange-800 mb-2 leading-relaxed">
-                      • {type}
-                    </Text>
-                  ))}
-                </View>
-
-                {/* URL Tips */}
                 <View className="bg-green-50 rounded-2xl p-6">
                   <Text className="text-lg font-bold text-green-900 mb-4">💡 URL Tips</Text>
-                  {supportedUrls.tips.map((tip, index) => (
+                  {[
+                    'Make sure the URL is publicly accessible',
+                    'Web articles and documentation work best',
+                    'Try Wikipedia or news articles for testing',
+                    'Some websites may block automated access'
+                  ].map((tip, index) => (
                     <Text key={index} className="text-green-800 mb-2 leading-relaxed">
                       • {tip}
                     </Text>
@@ -442,7 +476,7 @@ export const DocumentChatScreen: React.FC = () => {
                 {'fileName' in currentDocument ? currentDocument.fileName : currentDocument.title}
               </Text>
               <Text className="text-sm text-gray-600">
-                AI Chat • {'fileType' in currentDocument ? currentDocument.fileType.toUpperCase() : currentDocument.contentType.toUpperCase()} • {Math.round(currentDocument.extractedText.length / 1000)}k chars
+                AI Chat • {'fileType' in currentDocument ? currentDocument.fileType.toUpperCase() : 'URL'} • {Math.round(('extractedText' in currentDocument ? currentDocument.extractedText : currentDocument.content).length / 1000)}k chars
               </Text>
               {'url' in currentDocument && (
                 <Text className="text-xs text-blue-600 mt-1" numberOfLines={1}>

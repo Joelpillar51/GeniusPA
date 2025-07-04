@@ -1,0 +1,12 @@
+Test Document Content
+
+This is a simple test document with some basic content.
+
+Main topics:
+- Topic one: Basic testing
+- Topic two: Content validation
+- Topic three: AI interaction
+
+The document should be processed successfully and the AI should be able to answer questions about these topics.
+
+End of test document.
