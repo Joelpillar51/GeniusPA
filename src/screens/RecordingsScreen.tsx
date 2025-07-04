@@ -1,18 +1,21 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { RootStackParamList } from '../types/navigation';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useMeetingStore } from '../state/meetingStore';
-import { useAuthStore } from '../state/authStore';
 import { RecordingButton } from '../components/RecordingButton';
+import { EditableText } from '../components/EditableText';
 import { Recording } from '../types/meeting';
 import { exportRecordingTranscript } from '../utils/pdfExport';
 import { cn } from '../utils/cn';
 
 export const RecordingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const { recordings, deleteRecording } = useMeetingStore();
+  const navigation = useNavigation<any>();
+  const { recordings, deleteRecording, updateRecording } = useMeetingStore();
   const { user } = useAuthStore();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -122,12 +125,20 @@ export const RecordingsScreen: React.FC = () => {
           ) : (
             <View className="px-6 py-4">
               {sortedRecordings.map((recording) => (
-                <View key={recording.id} className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <Pressable 
+                  key={recording.id} 
+                  onPress={() => navigation.navigate('RecordingDetail', { recordingId: recording.id })}
+                  className="mb-4 p-4 bg-gray-50 rounded-lg"
+                >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1">
-                      <Text className="font-semibold text-gray-900 mb-1">
-                        {recording.title}
-                      </Text>
+                      <EditableText
+                        text={recording.title}
+                        onSave={(newTitle) => updateRecording(recording.id, { title: newTitle })}
+                        placeholder="Recording title"
+                        maxLength={100}
+                        textStyle="font-semibold text-gray-900 mb-1"
+                      />
                       <Text className="text-gray-600 text-sm">
                         {new Date(recording.createdAt).toLocaleDateString()} at{' '}
                         {new Date(recording.createdAt).toLocaleTimeString()}
@@ -181,14 +192,22 @@ export const RecordingsScreen: React.FC = () => {
                   
                   {recording.transcript && (
                     <View className="mt-3 pt-3 border-t border-gray-200">
-                      <Text className="text-gray-800 text-sm leading-relaxed">
-                        {recording.transcript.length > 200
-                          ? `${recording.transcript.substring(0, 200)}...`
-                          : recording.transcript}
-                      </Text>
+                      <View className="flex-row items-center justify-between mb-2">
+                        <Text className="text-gray-600 text-xs font-medium uppercase tracking-wide">
+                          Transcript
+                        </Text>
+                      </View>
+                      <EditableText
+                        text={recording.transcript}
+                        onSave={(newTranscript) => updateRecording(recording.id, { transcript: newTranscript })}
+                        multiline
+                        placeholder="No transcript available"
+                        textStyle="text-gray-800 text-sm leading-relaxed"
+                        showEditIcon={true}
+                      />
                     </View>
                   )}
-                </View>
+                </Pressable>
               ))}
             </View>
           )}

@@ -1,29 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthStore } from '../state/authStore';
-import { SplashScreen } from '../screens/SplashScreen';
-import { OnboardingScreen } from '../screens/OnboardingScreen';
-import { AuthScreen } from '../screens/AuthScreen';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TabNavigator } from './TabNavigator';
+import { RecordingDetailScreen } from '../screens/RecordingDetailScreen';
+import { DocumentDetailScreen } from '../screens/DocumentDetailScreen';
+
+const Stack = createNativeStackNavigator();
 
 export const AppNavigator: React.FC = () => {
-  const [showSplash, setShowSplash] = useState(true);
-  const { isAuthenticated, hasSeenOnboarding } = useAuthStore();
-
-  // Handle splash screen
-  if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />;
-  }
-
-  // Handle onboarding for new users
-  if (isAuthenticated && !hasSeenOnboarding) {
-    return <OnboardingScreen onComplete={() => {}} />;
-  }
-
-  // Handle authentication
-  if (!isAuthenticated) {
-    return <AuthScreen />;
-  }
-
-  // Main app
-  return <TabNavigator />;
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Main" component={TabNavigator} />
+      <Stack.Screen 
+        name="RecordingDetail" 
+        component={RecordingDetailScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="DocumentDetail" 
+        component={DocumentDetailScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+    </Stack.Navigator>
+  );
 };

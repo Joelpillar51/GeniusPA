@@ -1,14 +1,17 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useMeetingStore } from '../state/meetingStore';
+import { EditableText } from '../components/EditableText';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 
 export const DocumentsScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { documents, addDocument, updateDocument, deleteDocument } = useMeetingStore();
 
   const sortedDocuments = documents.sort((a, b) => 
@@ -140,7 +143,11 @@ export const DocumentsScreen: React.FC = () => {
           ) : (
             <View className="px-6 py-4">
               {sortedDocuments.map((document) => (
-                <View key={document.id} className="mb-4 p-4 bg-gray-50 rounded-lg">
+                <Pressable 
+                  key={document.id} 
+                  onPress={() => navigation.navigate('DocumentDetail', { documentId: document.id })}
+                  className="mb-4 p-4 bg-gray-50 rounded-lg"
+                >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1">
                       <View className="flex-row items-center mb-2">
@@ -149,9 +156,15 @@ export const DocumentsScreen: React.FC = () => {
                           size={20}
                           color="#6B7280"
                         />
-                        <Text className="font-semibold text-gray-900 ml-2 flex-1">
-                          {document.name}
-                        </Text>
+                        <View className="ml-2 flex-1">
+                          <EditableText
+                            text={document.name}
+                            onSave={(newName) => updateDocument(document.id, { name: newName })}
+                            placeholder="Document name"
+                            maxLength={100}
+                            textStyle="font-semibold text-gray-900"
+                          />
+                        </View>
                       </View>
                       
                       <Text className="text-gray-600 text-sm">
@@ -180,16 +193,30 @@ export const DocumentsScreen: React.FC = () => {
                     </Pressable>
                   </View>
                   
-                  {document.transcript && document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
+                  {document.transcript && (
                     <View className="mt-3 pt-3 border-t border-gray-200">
-                      <Text className="text-gray-800 text-sm leading-relaxed">
-                        {document.transcript.length > 200
-                          ? `${document.transcript.substring(0, 200)}...`
-                          : document.transcript}
-                      </Text>
+                      <View className="flex-row items-center justify-between mb-2">
+                        <Text className="text-gray-600 text-xs font-medium uppercase tracking-wide">
+                          Content
+                        </Text>
+                      </View>
+                      {document.transcript === "PDF content extraction is not available in this demo. Please upload text files for full functionality." ? (
+                        <Text className="text-gray-500 text-sm italic">
+                          {document.transcript}
+                        </Text>
+                      ) : (
+                        <EditableText
+                          text={document.transcript}
+                          onSave={(newTranscript) => updateDocument(document.id, { transcript: newTranscript })}
+                          multiline
+                          placeholder="Document content"
+                          textStyle="text-gray-800 text-sm leading-relaxed"
+                          showEditIcon={true}
+                        />
+                      )}
                     </View>
                   )}
-                </View>
+                </Pressable>
               ))}
             </View>
           )}
