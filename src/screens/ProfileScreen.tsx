@@ -72,11 +72,15 @@ export const ProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {/* Header */}
+      <View className="px-6 py-4 border-b border-gray-200">
+        <Text className="text-2xl font-bold text-gray-900">Profile</Text>
+      </View>
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="px-8 pt-8 pb-8 bg-white">
-          <View className="items-center">
-            {/* Profile Avatar */}
+        <View className="px-6 py-6">
+          {/* Profile Info */}
+          <View className="items-center mb-8">
             <View className="w-24 h-24 bg-emerald-100 rounded-full items-center justify-center mb-6 border-4 border-emerald-50">
               <View className="w-16 h-16 bg-emerald-500 rounded-full items-center justify-center">
                 <Text className="text-white text-2xl font-bold">
@@ -140,58 +144,56 @@ export const ProfileScreen: React.FC = () => {
               </Text>
             </Pressable>
           </View>
-        </View>
 
-        {/* Usage Stats */}
-        <View className="px-8 py-6 mx-8 mb-6 bg-gray-50 rounded-2xl">
-          <Text className="text-lg font-bold text-gray-900 mb-4 text-center">Today's Usage</Text>
-          <View className="flex-row justify-around mb-4">
-            <View className="items-center">
-              <View className="w-16 h-16 bg-emerald-100 rounded-2xl items-center justify-center mb-2">
-                <Ionicons name="mic" size={24} color="#10B981" />
-              </View>
-              <Text className="text-2xl font-bold text-emerald-600 mb-1">
-                {getTodayUsage().recordingsCount}
-              </Text>
-              <Text className="text-gray-600 text-xs font-medium">
-                {limits.dailyRecordings === -1 ? 'Unlimited' : `${getTodayUsage().recordingsCount}/${limits.dailyRecordings}`}
-              </Text>
-              <Text className="text-gray-600 text-xs">Recordings</Text>
+          {/* Usage Stats */}
+          <View className="mb-8 bg-gray-50 rounded-2xl p-6">
+            <Text className="text-lg font-bold text-gray-900 mb-4 text-center">Usage Overview</Text>
+            <View className="flex-row justify-around mb-4">
+              <Pressable onPress={showDataInfo} className="items-center">
+                <View className="w-16 h-16 bg-emerald-100 rounded-2xl items-center justify-center mb-2">
+                  <Ionicons name="mic" size={24} color="#10B981" />
+                </View>
+                <Text className="text-2xl font-bold text-emerald-600 mb-1">
+                  {getTodayUsage().recordingsCount}
+                </Text>
+                <Text className="text-gray-600 text-xs font-medium">Today</Text>
+                <Text className="text-gray-500 text-xs">
+                  {limits.dailyRecordings === -1 ? 'Unlimited' : `${getTodayUsage().recordingsCount}/${limits.dailyRecordings}`}
+                </Text>
+              </Pressable>
+              <Pressable onPress={showDataInfo} className="items-center">
+                <View className="w-16 h-16 bg-blue-100 rounded-2xl items-center justify-center mb-2">
+                  <Ionicons name="document-text" size={24} color="#3B82F6" />
+                </View>
+                <Text className="text-2xl font-bold text-blue-600 mb-1">{documents.length}</Text>
+                <Text className="text-gray-600 text-xs font-medium">Total</Text>
+                <Text className="text-gray-500 text-xs">
+                  {limits.maxDocuments === -1 ? 'Unlimited' : `${documents.length}/${limits.maxDocuments}`}
+                </Text>
+              </Pressable>
+              <Pressable onPress={showDataInfo} className="items-center">
+                <View className="w-16 h-16 bg-purple-100 rounded-2xl items-center justify-center mb-2">
+                  <Ionicons name="chatbubbles" size={24} color="#8B5CF6" />
+                </View>
+                <Text className="text-2xl font-bold text-purple-600 mb-1">{chatSessions.length}</Text>
+                <Text className="text-gray-600 text-xs font-medium">Chats</Text>
+                <Text className="text-gray-500 text-xs">
+                  {limits.aiChatProjects === -1 ? 'Unlimited' : `Max ${limits.aiChatProjects}`}
+                </Text>
+              </Pressable>
             </View>
-            <View className="items-center">
-              <View className="w-16 h-16 bg-blue-100 rounded-2xl items-center justify-center mb-2">
-                <Ionicons name="document-text" size={24} color="#3B82F6" />
-              </View>
-              <Text className="text-2xl font-bold text-blue-600 mb-1">{documents.length}</Text>
-              <Text className="text-gray-600 text-xs font-medium">
-                {limits.maxDocuments === -1 ? 'Unlimited' : `${documents.length}/${limits.maxDocuments}`}
-              </Text>
-              <Text className="text-gray-600 text-xs">Documents</Text>
-            </View>
-            <View className="items-center">
-              <View className="w-16 h-16 bg-purple-100 rounded-2xl items-center justify-center mb-2">
-                <Ionicons name="chatbubbles" size={24} color="#8B5CF6" />
-              </View>
-              <Text className="text-2xl font-bold text-purple-600 mb-1">{chatSessions.length}</Text>
-              <Text className="text-gray-600 text-xs font-medium">
-                {limits.aiChatProjects === -1 ? 'Unlimited' : `Max ${limits.aiChatProjects}`}
-              </Text>
-              <Text className="text-gray-600 text-xs">AI Chats</Text>
-            </View>
+            
+            {plan === 'free' && (
+              <Pressable 
+                onPress={() => setShowUpgradeModal(true)}
+                className="bg-emerald-500 rounded-xl py-3 items-center"
+              >
+                <Text className="text-white font-semibold">Upgrade for More</Text>
+              </Pressable>
+            )}
           </View>
-          
-          {plan === 'free' && (
-            <Pressable 
-              onPress={() => setShowUpgradeModal(true)}
-              className="bg-emerald-500 rounded-xl py-3 items-center"
-            >
-              <Text className="text-white font-semibold">Upgrade for More</Text>
-            </Pressable>
-          )}
-        </View>
 
-        {/* Preferences */}
-        <View className="px-8">
+          {/* Settings */}
           <Text className="text-xl font-bold text-gray-900 mb-6">Settings & Preferences</Text>
 
           {/* Recording Quality */}
@@ -207,18 +209,20 @@ export const ProfileScreen: React.FC = () => {
                 <Pressable
                   key={quality}
                   onPress={() => updatePreference('recordingQuality', quality)}
-                  className={`px-4 py-3 rounded-xl flex-1 mx-1 ${
+                  className={cn(
+                    "px-4 py-3 rounded-xl flex-1 mx-1",
                     user.preferences.recordingQuality === quality
                       ? 'bg-emerald-500'
                       : 'bg-gray-100'
-                  }`}
+                  )}
                 >
                   <Text
-                    className={`font-semibold capitalize text-center ${
+                    className={cn(
+                      "font-semibold capitalize text-center",
                       user.preferences.recordingQuality === quality
                         ? 'text-white'
                         : 'text-gray-700'
-                    }`}
+                    )}
                   >
                     {quality}
                   </Text>
@@ -340,24 +344,24 @@ export const ProfileScreen: React.FC = () => {
               <Text className="text-red-600 font-semibold text-lg ml-2">Sign Out</Text>
             </View>
           </Pressable>
-          
-          {/* Upgrade Modal */}
-          <UpgradeModal
-            visible={showUpgradeModal}
-            onClose={() => setShowUpgradeModal(false)}
-            context={{
-              feature: 'Subscription',
-              limitation: 'You are currently on the free plan with limited features.',
-              benefits: [
-                'Longer recording limits',
-                'More daily recordings',
-                'Multiple documents and AI chats',
-                'All export formats',
-              ],
-            }}
-          />
         </View>
       </ScrollView>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        context={{
+          feature: 'Subscription',
+          limitation: 'You are currently on the free plan with limited features.',
+          benefits: [
+            'Longer recording limits',
+            'More daily recordings',
+            'Multiple documents and AI chats',
+            'All export formats',
+          ],
+        }}
+      />
     </SafeAreaView>
   );
 };

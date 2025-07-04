@@ -6,8 +6,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
-import { ProfileModal } from '../components/ProfileModal';
-import { TestProfileModal } from '../components/TestProfileModal';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { RecordingButton } from '../components/RecordingButton';
 import { cn } from '../utils/cn';
@@ -18,7 +16,6 @@ export const OverviewScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
   const { plan, limits, getTodayUsage } = useSubscriptionStore();
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const todayUsage = getTodayUsage();
@@ -65,10 +62,7 @@ export const OverviewScreen: React.FC = () => {
           
           {/* Profile Avatar */}
           <Pressable
-            onPress={() => {
-              console.log('Profile avatar pressed, user:', user);
-              setShowProfileModal(true);
-            }}
+            onPress={() => navigation.navigate('Profile')}
             className="w-12 h-12 bg-emerald-100 rounded-full items-center justify-center border-2 border-emerald-50"
           >
             <Text className="text-emerald-700 font-bold text-lg">
@@ -296,13 +290,6 @@ export const OverviewScreen: React.FC = () => {
         onClose={() => setShowProfileModal(false)}
       />
       
-      {/* Original Profile Modal - commented out for testing
-      <ProfileModal
-        visible={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
-      />
-      */}
-
       {/* Upgrade Modal */}
       <UpgradeModal
         visible={showUpgradeModal}

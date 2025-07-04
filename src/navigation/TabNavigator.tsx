@@ -5,6 +5,7 @@ import { OverviewScreen } from '../screens/OverviewScreen';
 import { RecordingsScreen } from '../screens/RecordingsScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -59,6 +60,15 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

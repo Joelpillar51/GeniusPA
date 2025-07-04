@@ -13,6 +13,7 @@ export type TabParamList = {
   Recordings: undefined;
   Documents: undefined;
   'AI Chat': undefined;
+  Profile: undefined;
 };
 
 declare global {
