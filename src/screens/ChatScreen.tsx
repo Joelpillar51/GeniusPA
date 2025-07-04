@@ -20,6 +20,7 @@ export const ChatScreen: React.FC = () => {
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [directChatMode, setDirectChatMode] = useState(false);
@@ -97,11 +98,27 @@ What would you like to explore about this document?`,
   useEffect(() => {
     if (selectedItem && currentSession) {
       const updatedSession = chatSessions.find(s => s.id === currentSession.id);
-      if (updatedSession) {
+      if (updatedSession && updatedSession.messages.length !== currentSession.messages.length) {
         setCurrentSession(updatedSession);
       }
+    } else if (directChatMode && currentSession) {
+      // For direct chat mode
+      const directChatId = 'direct_chat_general';
+      const updatedDirectSession = chatSessions.find(s => s.id === directChatId);
+      if (updatedDirectSession && updatedDirectSession.messages.length !== currentSession.messages.length) {
+        setCurrentSession(updatedDirectSession);
+      }
     }
-  }, [chatSessions, selectedItem, currentSession?.id]);
+  }, [chatSessions, selectedItem, currentSession?.id, currentSession?.messages?.length, directChatMode]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (currentSession?.messages?.length) {
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [currentSession?.messages?.length]);
 
   // Handle direct AI chat mode
   const startDirectChat = () => {
@@ -155,10 +172,21 @@ What would you like to chat about today?`,
       relatedItemId: selectedItem?.id || null,
     };
 
+    // Add user message and immediately update local state
     addMessageToSession(currentSession.id, userMessage);
+    
+    // Force update current session with the new message immediately for better UX
+    const updatedSession = {
+      ...currentSession,
+      messages: [...currentSession.messages, userMessage],
+      updatedAt: new Date()
+    };
+    setCurrentSession(updatedSession);
+    
     setInputText('');
     setIsLoading(true);
     setLoadingMessage('');
+    setLoadingProgress(0);
 
     try {
       let contextPrompt = '';
@@ -166,6 +194,7 @@ What would you like to chat about today?`,
       if (directChatMode || !selectedItem) {
         // Direct AI chat mode - no document context
         setLoadingMessage('Preparing response...');
+        setLoadingProgress(25);
         
         contextPrompt = `You are a helpful AI assistant. Please provide a comprehensive and helpful response to the user's question or request.
 
@@ -196,6 +225,7 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
 
         // Get the content for context
         setLoadingMessage('Accessing document content...');
+        setLoadingProgress(20);
         
         const item = selectedItem.type === 'recording' 
           ? recordings.find(r => r.id === selectedItem.id)
@@ -208,6 +238,7 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
         console.log('Chat content preview:', content.substring(0, 200));
         
         setLoadingMessage('Analyzing content...');
+        setLoadingProgress(40);
         
         // Check if the document content is actually extractable or just a placeholder
         const isPlaceholderContent = content.includes('📄') || 
@@ -268,7 +299,9 @@ Please provide a comprehensive and helpful response based on the content provide
       }
 
       setLoadingMessage('Generating AI response...');
+      setLoadingProgress(70);
       const response = await getOpenAIChatResponse(contextPrompt);
+      setLoadingProgress(90);
 
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_ai`,
@@ -279,12 +312,25 @@ Please provide a comprehensive and helpful response based on the content provide
       };
 
       addMessageToSession(currentSession.id, assistantMessage);
+      
+      // Force update current session with the new AI message
+      // Get the latest session state to avoid race conditions
+      const latestSession = chatSessions.find(s => s.id === currentSession.id) || currentSession;
+      const finalUpdatedSession = {
+        ...latestSession,
+        messages: [...latestSession.messages],
+        updatedAt: new Date()
+      };
+      setCurrentSession(finalUpdatedSession);
+      
+      setLoadingProgress(100);
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to get AI response. Please try again.');
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
+      setLoadingProgress(0);
     }
   };
 
@@ -326,6 +372,7 @@ Please provide a comprehensive and helpful response based on the content provide
 
     setIsLoading(true);
     setLoadingMessage('Analyzing content for questions...');
+    setLoadingProgress(25);
     
     try {
       const item = selectedItem.type === 'recording' 
@@ -335,6 +382,7 @@ Please provide a comprehensive and helpful response based on the content provide
       const content = item?.transcript || '';
       
       setLoadingMessage('Generating thoughtful questions...');
+      setLoadingProgress(60);
       
       const prompt = `Based on this ${selectedItem.type} content, generate 3 thoughtful questions that would help someone better understand or test their knowledge of this material:
 
@@ -353,12 +401,25 @@ Please format as a numbered list with clear, specific questions.`;
       };
 
       addMessageToSession(currentSession.id, questionsMessage);
+      
+      // Force update current session with the new questions message
+      // Get the latest session state to avoid race conditions
+      const latestSession = chatSessions.find(s => s.id === currentSession.id) || currentSession;
+      const updatedSessionWithQuestions = {
+        ...latestSession,
+        messages: [...latestSession.messages],
+        updatedAt: new Date()
+      };
+      setCurrentSession(updatedSessionWithQuestions);
+      
+      setLoadingProgress(100);
     } catch (error) {
       console.error('Error generating questions:', error);
       Alert.alert('Error', 'Failed to generate questions. Please try again.');
     } finally {
       setIsLoading(false);
       setLoadingMessage('');
+      setLoadingProgress(0);
     }
   };
 
@@ -511,6 +572,7 @@ Please format as a numbered list with clear, specific questions.`;
             <ScrollView
               ref={scrollViewRef}
               className="flex-1 px-6"
+              key={`chat-${currentSession?.id}-${currentSession?.messages?.length || 0}`}
               onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
               {!currentSession || currentSession.messages.length === 0 ? (
@@ -558,7 +620,10 @@ Please format as a numbered list with clear, specific questions.`;
                   ))}
                   
                   {isLoading && (
-                    <AILoadingIndicator message={loadingMessage} />
+                    <AILoadingIndicator 
+                      message={loadingMessage} 
+                      progress={loadingProgress}
+                    />
                   )}
                 </View>
               )}

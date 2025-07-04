@@ -6,14 +6,17 @@ import { TypingIndicator } from './TypingIndicator';
 interface AILoadingIndicatorProps {
   message?: string;
   stage?: 'thinking' | 'analyzing' | 'generating' | 'finalizing';
+  progress?: number; // 0-100 percentage
 }
 
 export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({ 
   message, 
-  stage = 'thinking' 
+  stage = 'thinking',
+  progress 
 }) => {
   const [dots, setDots] = useState('');
   const [currentStage, setCurrentStage] = useState(stage);
+  const [currentProgress, setCurrentProgress] = useState(progress || 0);
 
   // Animate dots
   useEffect(() => {
@@ -27,20 +30,28 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-progress through stages for better UX
+  // Auto-progress through stages and percentage for better UX
   useEffect(() => {
+    if (progress !== undefined) {
+      setCurrentProgress(progress);
+      return;
+    }
+    
     if (!message) {
       const stages = ['thinking', 'analyzing', 'generating', 'finalizing'];
       let currentIndex = stages.indexOf(stage);
+      let progressValue = (currentIndex + 1) * 25; // 25%, 50%, 75%, 100%
       
       const interval = setInterval(() => {
         currentIndex = (currentIndex + 1) % stages.length;
+        progressValue = Math.min((currentIndex + 1) * 25, 100);
         setCurrentStage(stages[currentIndex] as any);
+        setCurrentProgress(progressValue);
       }, 2000);
 
       return () => clearInterval(interval);
     }
-  }, [stage, message]);
+  }, [stage, message, progress]);
 
   const getStageInfo = () => {
     switch (currentStage) {
@@ -108,19 +119,22 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
                     className="h-full rounded-full"
                     style={{ 
                       backgroundColor: stageInfo.color,
-                      width: currentStage === 'thinking' ? '25%' :
-                             currentStage === 'analyzing' ? '50%' :
-                             currentStage === 'generating' ? '75%' : '95%'
+                      width: `${Math.min(currentProgress, 100)}%`
                     }}
                   />
                 </View>
               </View>
               <View className="flex-row items-center justify-between">
                 <TypingIndicator isVisible={true} color={stageInfo.color} />
-                <ActivityIndicator 
-                  size="small" 
-                  color={stageInfo.color}
-                />
+                <View className="flex-row items-center">
+                  <Text className="text-xs font-medium mr-2" style={{ color: stageInfo.color }}>
+                    {Math.round(currentProgress)}%
+                  </Text>
+                  <ActivityIndicator 
+                    size="small" 
+                    color={stageInfo.color}
+                  />
+                </View>
               </View>
             </View>
           )}

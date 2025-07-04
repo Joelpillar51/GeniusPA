@@ -8,6 +8,7 @@ import { useSubscriptionStore } from '../state/subscriptionStore';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 import { processDocumentFromUrl, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
@@ -20,6 +21,7 @@ export const DocumentsScreen: React.FC = () => {
   const [urlInput, setUrlInput] = useState('');
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [processingProgress, setProcessingProgress] = useState(0);
 
   const sortedDocuments = documents.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -43,11 +45,14 @@ export const DocumentsScreen: React.FC = () => {
 
     setIsProcessingUrl(true);
     setProcessingMessage('Fetching URL content...');
+    setProcessingProgress(25);
     
     try {
       // Process the URL and extract content
       setProcessingMessage('Extracting and analyzing content...');
+      setProcessingProgress(50);
       const processedUrl = await processDocumentFromUrl(urlInput.trim());
+      setProcessingProgress(75);
       
       if (processedUrl.success && processedUrl.extractedText) {
         // Create document from URL content
@@ -70,6 +75,7 @@ export const DocumentsScreen: React.FC = () => {
         addDocument(newDocument);
         setUrlInput('');
         setProcessingMessage('');
+        setProcessingProgress(100);
         
         Alert.alert(
           'URL Processed Successfully!',
@@ -95,6 +101,7 @@ export const DocumentsScreen: React.FC = () => {
     } finally {
       setIsProcessingUrl(false);
       setProcessingMessage('');
+      setProcessingProgress(0);
     }
   };
 
@@ -210,12 +217,12 @@ export const DocumentsScreen: React.FC = () => {
             </View>
 
             {/* Processing Status */}
-            {isProcessingUrl && processingMessage && (
-              <View className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <View className="flex-row items-center">
-                  <ActivityIndicator size="small" color="#3B82F6" />
-                  <Text className="ml-2 text-blue-700 font-medium text-sm">{processingMessage}</Text>
-                </View>
+            {isProcessingUrl && (
+              <View className="mb-4">
+                <AILoadingIndicator 
+                  message={processingMessage} 
+                  progress={processingProgress}
+                />
               </View>
             )}
           </View>
