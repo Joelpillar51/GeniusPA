@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
-import { TabNavigator } from "./src/navigation/TabNavigator";
+import { AppNavigator } from "./src/navigation/AppNavigator";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -28,7 +28,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <TabNavigator />
+        <AppNavigator />
         <StatusBar style="auto" />
       </NavigationContainer>
     </SafeAreaProvider>

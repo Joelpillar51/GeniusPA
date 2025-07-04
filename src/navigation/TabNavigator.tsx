@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RecordingsScreen } from '../screens/RecordingsScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -54,11 +54,11 @@ export const TabNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
+        name="Profile"
+        component={ProfileScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" size={size} color={color} />
+            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

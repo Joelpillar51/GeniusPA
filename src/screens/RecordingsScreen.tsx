@@ -4,6 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useMeetingStore } from '../state/meetingStore';
+import { useAuthStore } from '../state/authStore';
 import { RecordingButton } from '../components/RecordingButton';
 import { Recording } from '../types/meeting';
 import { exportRecordingTranscript } from '../utils/pdfExport';
@@ -12,6 +13,7 @@ import { cn } from '../utils/cn';
 export const RecordingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { recordings, deleteRecording } = useMeetingStore();
+  const { user } = useAuthStore();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
@@ -93,7 +95,9 @@ export const RecordingsScreen: React.FC = () => {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">Recordings</Text>
+          <Text className="text-2xl font-bold text-gray-900">
+            {user ? `Welcome back, ${user.name.split(' ')[0]}!` : 'Recordings'}
+          </Text>
           <Text className="text-gray-600 mt-1">{recordings.length} recordings</Text>
         </View>
 
