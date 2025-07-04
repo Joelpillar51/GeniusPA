@@ -39,13 +39,20 @@ export const useAuthStore = create<AuthStore>()(
         
         try {
           // Simulate API call - in a real app, this would be an actual API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 800));
           
           // For demo purposes, create a mock user
+          let userName = data.email.split('@')[0];
+          
+          // Special handling for demo account
+          if (data.email === 'demo@geniuspa.com') {
+            userName = 'Demo User';
+          }
+          
           const user: User = {
             id: `user_${Date.now()}`,
             email: data.email,
-            name: data.email.split('@')[0], // Use email prefix as name
+            name: userName,
             createdAt: new Date(),
             preferences: defaultPreferences,
           };
@@ -92,6 +99,7 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          hasSeenOnboarding: false,
         });
       },
 

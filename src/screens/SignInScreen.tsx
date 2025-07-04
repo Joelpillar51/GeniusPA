@@ -36,10 +36,11 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onSignUpPress }) => 
   const handleDemoLogin = async () => {
     try {
       await signIn({ 
-        email: 'demo@meetingai.com', 
+        email: 'demo@geniuspa.com', 
         password: 'demo123' 
       });
     } catch (error) {
+      console.error('Demo login error:', error);
       Alert.alert('Error', 'Failed to sign in with demo account');
     }
   };
@@ -132,7 +133,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ onSignUpPress }) => 
               className="bg-white border-2 border-emerald-500 rounded-2xl py-5 items-center mb-8"
             >
               <Text className="text-emerald-600 font-semibold text-lg">
-                Try Demo Account
+                {isLoading ? 'Signing In...' : 'Try Demo Account'}
               </Text>
             </Pressable>
 

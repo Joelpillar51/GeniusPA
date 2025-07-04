@@ -12,7 +12,10 @@ export const ProfileScreen: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
 
-  if (!user) return null;
+  if (!user) {
+    console.log('ProfileScreen: No user found, redirecting...');
+    return null;
+  }
 
   const handleSaveName = () => {
     if (!editName.trim()) {
@@ -29,7 +32,14 @@ export const ProfileScreen: React.FC = () => {
       'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+        { 
+          text: 'Sign Out', 
+          style: 'destructive', 
+          onPress: () => {
+            console.log('Signing out user...');
+            signOut();
+          }
+        },
       ]
     );
   };
