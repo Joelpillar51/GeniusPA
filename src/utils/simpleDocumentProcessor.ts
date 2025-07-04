@@ -16,31 +16,74 @@ export const processUploadedDocument = async (
   const fileExtension = getFileExtension(file.name);
   const fileType = determineFileType(fileExtension, file.mimeType);
   
-  console.log(`Processing file: ${file.name}, type: ${fileType}, mime: ${file.mimeType}`);
+  console.log('=== DOCUMENT PROCESSING START ===');
+  console.log(`File: ${file.name}`);
+  console.log(`Extension: ${fileExtension}`);
+  console.log(`Detected type: ${fileType}`);
+  console.log(`MIME type: ${file.mimeType}`);
+  console.log(`File size: ${file.size} bytes`);
+  console.log(`File URI: ${file.uri}`);
   
   const documentId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   try {
+    // Validate file before processing
+    if (!file.uri) {
+      throw new Error('Invalid file: no URI provided');
+    }
+    
+    if (!file.name) {
+      throw new Error('Invalid file: no filename provided');
+    }
+    
+    // Check if file exists
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(file.uri);
+      if (!fileInfo.exists) {
+        throw new Error('File does not exist at the specified location');
+      }
+      console.log('File exists and is accessible');
+    } catch (fileCheckError) {
+      throw new Error(`Cannot access file: ${fileCheckError instanceof Error ? fileCheckError.message : 'Unknown error'}`);
+    }
+    
     let extractedText = '';
+    
+    console.log(`Processing as ${fileType} file...`);
     
     switch (fileType) {
       case 'txt':
+        console.log('Using text file processor');
         extractedText = await extractTextFromTxtFile(file.uri);
         break;
       case 'pdf':
+        console.log('Using PDF file processor');
         extractedText = await extractTextFromPdfFile(file.uri, file.name);
         break;
       case 'docx':
+        console.log('Using DOCX file processor');
         extractedText = await extractTextFromDocxFile(file.uri, file.name);
         break;
       default:
-        throw new Error(`Unsupported file type: ${fileExtension}`);
+        console.log(`Unknown file type: ${fileExtension}, trying as text file...`);
+        try {
+          extractedText = await extractTextFromTxtFile(file.uri);
+          console.log('Successfully processed unknown file type as text');
+        } catch (textError) {
+          console.log('Failed to process as text file:', textError);
+          throw new Error(`Unsupported file type: ${fileExtension}. Supported types: txt, md, csv, pdf, doc, docx. Error: ${textError instanceof Error ? textError.message : 'Unknown error'}`);
+        }
     }
+    
+    console.log(`Extracted text length: ${extractedText?.length || 0}`);
+    console.log(`Extracted text preview: ${extractedText?.substring(0, 100)}...`);
     
     // Validate extracted text
     if (!extractedText || extractedText.trim().length < 10) {
-      throw new Error('No readable text content found in the document');
+      throw new Error('No readable text content found in the document. The file may be empty, corrupted, or in an unsupported format.');
     }
+    
+    console.log('=== DOCUMENT PROCESSING SUCCESS ===');
     
     return {
       id: documentId,
@@ -51,7 +94,9 @@ export const processUploadedDocument = async (
     };
     
   } catch (error) {
-    console.error('Document processing failed:', error);
+    console.error('=== DOCUMENT PROCESSING FAILED ===');
+    console.error('Error details:', error);
+    
     return {
       id: documentId,
       fileName: file.name,
@@ -68,47 +113,85 @@ const getFileExtension = (fileName: string): string => {
 };
 
 const determineFileType = (extension: string, mimeType?: string): 'txt' | 'pdf' | 'docx' | 'unknown' => {
-  // Check by file extension first
-  if (['txt', 'md', 'csv', 'json', 'log'].includes(extension)) {
+  console.log(`Determining file type for extension: ${extension}, MIME: ${mimeType}`);
+  
+  // Check by file extension first (more reliable)
+  if (['txt', 'md', 'csv', 'json', 'log', 'rtf', 'xml', 'html', 'htm'].includes(extension)) {
+    console.log('Detected as text file by extension');
     return 'txt';
   }
   if (extension === 'pdf') {
+    console.log('Detected as PDF by extension');
     return 'pdf';
   }
   if (['docx', 'doc'].includes(extension)) {
+    console.log('Detected as Word document by extension');
     return 'docx';
   }
   
   // Fallback to MIME type
   if (mimeType?.includes('text')) {
+    console.log('Detected as text file by MIME type');
     return 'txt';
   }
   if (mimeType?.includes('pdf')) {
+    console.log('Detected as PDF by MIME type');
     return 'pdf';
   }
   if (mimeType?.includes('word') || mimeType?.includes('officedocument')) {
+    console.log('Detected as Word document by MIME type');
     return 'docx';
   }
   
+  console.log('File type unknown, will try as text');
   return 'unknown';
 };
 
 const extractTextFromTxtFile = async (uri: string): Promise<string> => {
+  console.log('Extracting text from file:', uri);
+  
   try {
-    // First try UTF-8 encoding
-    const content = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.UTF8
-    });
+    // Check if file exists and get info
+    const fileInfo = await FileSystem.getInfoAsync(uri);
+    console.log('File info:', fileInfo);
     
-    if (content && content.trim().length > 0) {
-      return content.trim();
+    if (!fileInfo.exists) {
+      throw new Error('File does not exist at the specified path');
+    }
+    
+    // First try UTF-8 encoding
+    try {
+      const content = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.UTF8
+      });
+      
+      console.log('UTF-8 content length:', content?.length || 0);
+      
+      if (content && content.trim().length > 0) {
+        console.log('Successfully extracted with UTF-8');
+        return content.trim();
+      }
+    } catch (utf8Error) {
+      console.log('UTF-8 extraction failed:', utf8Error);
     }
     
     // If UTF-8 fails or returns empty, try default encoding
-    const fallbackContent = await FileSystem.readAsStringAsync(uri);
-    return fallbackContent.trim();
+    try {
+      const fallbackContent = await FileSystem.readAsStringAsync(uri);
+      console.log('Fallback content length:', fallbackContent?.length || 0);
+      
+      if (fallbackContent && fallbackContent.trim().length > 0) {
+        console.log('Successfully extracted with fallback method');
+        return fallbackContent.trim();
+      }
+    } catch (fallbackError) {
+      console.log('Fallback extraction failed:', fallbackError);
+    }
+    
+    throw new Error('No readable content found in the file');
     
   } catch (error) {
+    console.error('Text file extraction error:', error);
     throw new Error(`Failed to read text file: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

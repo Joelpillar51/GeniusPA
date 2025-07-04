@@ -12,7 +12,7 @@ import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
-import { processDocumentContent } from '../utils/documentProcessor';
+import { processUploadedDocument } from '../utils/simpleDocumentProcessor';
 import { processDocumentFromUrl } from '../utils/urlDocumentProcessor';
 
 export const DocumentsScreen: React.FC = () => {
@@ -109,19 +109,36 @@ export const DocumentsScreen: React.FC = () => {
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        type: [
+          'text/plain',
+          'text/markdown', 
+          'text/csv',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/*'
+        ],
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
+        console.log('Selected file:', {
+          name: file.name,
+          size: file.size,
+          type: file.mimeType,
+          uri: file.uri
+        });
         
         // Show processing alert for large files
-        if (file.size && file.size > 1024 * 1024) { // 1MB
+        if (file.size && file.size > 5 * 1024 * 1024) { // 5MB
           Alert.alert(
-            'Processing Large File',
-            `Processing "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB). This may take a moment.`,
-            [{ text: 'OK', onPress: () => processDocument(file) }]
+            'Large File Detected',
+            `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Large files may take longer to process or may fail. Continue?`,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Process Anyway', onPress: () => processDocument(file) }
+            ]
           );
         } else {
           await processDocument(file);
@@ -130,13 +147,17 @@ export const DocumentsScreen: React.FC = () => {
     } catch (error) {
       console.error('Error picking document:', error);
       Alert.alert(
-        'Document Error', 
-        'Failed to load document. Please try again or choose a different file format.'
+        'File Selection Error', 
+        'Failed to select document. Please try again or choose a different file.',
+        [{ text: 'OK' }]
       );
     }
   };
 
   const processDocument = async (file: DocumentPicker.DocumentPickerAsset) => {
+    console.log('Processing document:', file.name, file.mimeType, file.size);
+    
+    // Create initial document entry
     const newDocument: Document = {
       id: Date.now().toString(),
       name: file.name,
@@ -155,37 +176,90 @@ export const DocumentsScreen: React.FC = () => {
     addDocument(newDocument);
 
     try {
-      // Process document using the utility function
-      const result = await processDocumentContent(file.uri, file.name, file.mimeType);
+      // Process document using the reliable processor
+      const result = await processUploadedDocument(file);
       
-      // Update document with processed content
-      updateDocument(newDocument.id, {
-        transcript: result.content,
-        isProcessing: false,
-      });
+      if (result.success && result.extractedText) {
+        // Update document with successfully extracted content
+        updateDocument(newDocument.id, {
+          transcript: result.extractedText,
+          isProcessing: false,
+        });
 
-      // Show success message for successful processing
-      if (result.success && result.message) {
+        console.log(`Successfully processed ${file.name}: ${result.extractedText.length} characters`);
+        
+        // Show success message
         setTimeout(() => {
-          Alert.alert('Document Processed', result.message, [{ text: 'OK' }]);
+          Alert.alert(
+            '✅ Document Processed Successfully!',
+            `"${file.name}" has been processed and ${result.extractedText.length} characters of text were extracted.\n\nYou can now:\n• View and edit the content\n• Generate summaries\n• Use it in AI Chat`,
+            [{ text: 'OK' }]
+          );
+        }, 500);
+        
+      } else {
+        // Processing failed - show error and helpful content
+        const errorContent = `Document "${file.name}" could not be processed automatically.
+
+Error: ${result.error || 'Unknown processing error'}
+
+What you can do:
+1. For PDFs: Try saving as a text file (.txt) first
+2. For Word docs: Copy and paste the text content
+3. Make sure the file contains readable text (not just images)
+4. Try uploading a different file format
+
+Supported formats:
+• Text files (.txt, .md, .csv) - Work best
+• PDFs with selectable text - Usually work
+• Word documents (.docx) - May need conversion
+
+You can edit this document and paste the text content manually.`;
+
+        updateDocument(newDocument.id, {
+          transcript: errorContent,
+          isProcessing: false,
+        });
+
+        setTimeout(() => {
+          Alert.alert(
+            '⚠️ Document Processing Failed',
+            `${result.error || 'Could not extract text from this document.'}\n\nThe document has been saved and you can:\n• Edit it manually to add content\n• Try converting to .txt format first\n• Check if the file contains readable text`,
+            [{ text: 'OK' }]
+          );
         }, 500);
       }
 
     } catch (error) {
       console.error('Error processing document:', error);
+      
+      // Update with generic error message
       updateDocument(newDocument.id, {
         transcript: `Document "${file.name}" encountered an error during processing.
 
-Error details: ${error instanceof Error ? error.message : 'Unknown error'}
+Error: ${error instanceof Error ? error.message : 'Unknown error'}
 
-The document has been saved to your library. You can:
-1. Try uploading the document again
-2. Convert to a text format for better compatibility
-3. Use the AI Chat feature to ask questions about this document
+This could be due to:
+• Unsupported file format
+• Corrupted file
+• Network issues
+• File too large or complex
 
-Supported formats work best: .txt, .md, .csv, and some PDFs.`,
+Try:
+1. Converting to .txt format first
+2. Using a smaller file
+3. Checking the file isn't corrupted
+4. Uploading a different document
+
+You can edit this document to add content manually.`,
         isProcessing: false,
       });
+
+      Alert.alert(
+        'Processing Error',
+        'An error occurred while processing the document. The document has been saved and you can edit it manually.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
