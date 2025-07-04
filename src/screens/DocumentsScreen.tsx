@@ -158,8 +158,35 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">Documents</Text>
-          <Text className="text-gray-600 mt-1">{documents.length} documents</Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="text-2xl font-bold text-gray-900">Documents</Text>
+              <Text className="text-gray-600 mt-1">{documents.length} documents</Text>
+            </View>
+            <Pressable
+              onPress={() => navigation.navigate('DocumentChat')}
+              className="bg-emerald-500 px-4 py-2 rounded-xl flex-row items-center"
+            >
+              <Ionicons name="chatbubbles" size={16} color="white" />
+              <Text className="text-white font-semibold ml-2 text-sm">AI Chat</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* New AI Chat Feature Notice */}
+        <View className="mx-6 my-4 p-4 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-emerald-200">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="text-emerald-800 font-bold text-lg mb-1">🚀 New: AI Document Chat</Text>
+              <Text className="text-emerald-700 text-sm">Upload files or paste URLs to chat with AI about content</Text>
+            </View>
+            <Pressable
+              onPress={() => navigation.navigate('DocumentChat')}
+              className="bg-emerald-500 px-4 py-2 rounded-xl"
+            >
+              <Text className="text-white font-semibold text-sm">Try It</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Upload Button */}

@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { OverviewScreen } from '../screens/OverviewScreen';
 import { RecordingsScreen } from '../screens/RecordingsScreen';
-import { DocumentChatScreen } from '../screens/DocumentChatScreen';
+import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 
 const Tab = createBottomTabNavigator();
@@ -46,7 +46,7 @@ export const TabNavigator: React.FC = () => {
       />
       <Tab.Screen
         name="Documents"
-        component={DocumentChatScreen}
+        component={DocumentsScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="document-text" size={size} color={color} />

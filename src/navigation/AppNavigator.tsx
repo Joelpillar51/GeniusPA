@@ -8,7 +8,7 @@ import { TabNavigator } from './TabNavigator';
 import { RecordingDetailScreen } from '../screens/RecordingDetailScreen';
 import { DocumentDetailScreen } from '../screens/DocumentDetailScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
-import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { DocumentChatScreen } from '../screens/DocumentChatScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -71,8 +71,8 @@ export const AppNavigator: React.FC = () => {
         }}
       />
       <Stack.Screen 
-        name="Subscription" 
-        component={SubscriptionScreen}
+        name="DocumentChat" 
+        component={DocumentChatScreen}
         options={{
           headerShown: false,
         }}
