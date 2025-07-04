@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert, TextInput } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ export const DocumentsScreen: React.FC = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [isProcessingUrl, setIsProcessingUrl] = useState(false);
+  const [processingMessage, setProcessingMessage] = useState('');
 
   const sortedDocuments = documents.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -41,9 +42,11 @@ export const DocumentsScreen: React.FC = () => {
     }
 
     setIsProcessingUrl(true);
+    setProcessingMessage('Fetching URL content...');
     
     try {
       // Process the URL and extract content
+      setProcessingMessage('Extracting and analyzing content...');
       const processedUrl = await processDocumentFromUrl(urlInput.trim());
       
       if (processedUrl.success && processedUrl.extractedText) {
@@ -66,6 +69,7 @@ export const DocumentsScreen: React.FC = () => {
 
         addDocument(newDocument);
         setUrlInput('');
+        setProcessingMessage('');
         
         Alert.alert(
           'URL Processed Successfully!',
@@ -90,6 +94,7 @@ export const DocumentsScreen: React.FC = () => {
       );
     } finally {
       setIsProcessingUrl(false);
+      setProcessingMessage('');
     }
   };
 
@@ -166,7 +171,9 @@ export const DocumentsScreen: React.FC = () => {
               }`}
             >
               {isProcessingUrl ? (
-                <Text className="text-white font-medium text-sm">...</Text>
+                <View className="flex-row items-center">
+                  <ActivityIndicator size="small" color="white" />
+                </View>
               ) : (
                 <Text className="text-white font-medium text-sm">Add</Text>
               )}
@@ -201,6 +208,16 @@ export const DocumentsScreen: React.FC = () => {
                 </Pressable>
               ))}
             </View>
+
+            {/* Processing Status */}
+            {isProcessingUrl && processingMessage && (
+              <View className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <View className="flex-row items-center">
+                  <ActivityIndicator size="small" color="#3B82F6" />
+                  <Text className="ml-2 text-blue-700 font-medium text-sm">{processingMessage}</Text>
+                </View>
+              </View>
+            )}
           </View>
 
             {/* Documents Section */}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, ScrollView, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
@@ -8,6 +8,7 @@ import { getOpenAIChatResponse } from '../api/chat-service';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ExportOptions } from '../components/ExportOptions';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
@@ -18,6 +19,7 @@ export const ChatScreen: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<{id: string, type: 'recording' | 'document', title: string} | null>(null);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [directChatMode, setDirectChatMode] = useState(false);
@@ -156,12 +158,15 @@ What would you like to chat about today?`,
     addMessageToSession(currentSession.id, userMessage);
     setInputText('');
     setIsLoading(true);
+    setLoadingMessage('');
 
     try {
       let contextPrompt = '';
       
       if (directChatMode || !selectedItem) {
         // Direct AI chat mode - no document context
+        setLoadingMessage('Preparing response...');
+        
         contextPrompt = `You are a helpful AI assistant. Please provide a comprehensive and helpful response to the user's question or request.
 
 User's message: ${inputText.trim()}
@@ -190,6 +195,8 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
         }
 
         // Get the content for context
+        setLoadingMessage('Accessing document content...');
+        
         const item = selectedItem.type === 'recording' 
           ? recordings.find(r => r.id === selectedItem.id)
           : documents.find(d => d.id === selectedItem.id);
@@ -199,6 +206,8 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
         // Debug logging to see what content we're working with
         console.log('Chat content length:', content.length);
         console.log('Chat content preview:', content.substring(0, 200));
+        
+        setLoadingMessage('Analyzing content...');
         
         // Check if the document content is actually extractable or just a placeholder
         const isPlaceholderContent = content.includes('📄') || 
@@ -258,6 +267,7 @@ Please provide a comprehensive and helpful response based on the content provide
         }
       }
 
+      setLoadingMessage('Generating AI response...');
       const response = await getOpenAIChatResponse(contextPrompt);
 
       const assistantMessage: ChatMessage = {
@@ -274,6 +284,7 @@ Please provide a comprehensive and helpful response based on the content provide
       Alert.alert('Error', 'Failed to get AI response. Please try again.');
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -314,12 +325,16 @@ Please provide a comprehensive and helpful response based on the content provide
     if (!selectedItem || !currentSession) return;
 
     setIsLoading(true);
+    setLoadingMessage('Analyzing content for questions...');
+    
     try {
       const item = selectedItem.type === 'recording' 
         ? recordings.find(r => r.id === selectedItem.id)
         : documents.find(d => d.id === selectedItem.id);
 
       const content = item?.transcript || '';
+      
+      setLoadingMessage('Generating thoughtful questions...');
       
       const prompt = `Based on this ${selectedItem.type} content, generate 3 thoughtful questions that would help someone better understand or test their knowledge of this material:
 
@@ -343,6 +358,7 @@ Please format as a numbered list with clear, specific questions.`;
       Alert.alert('Error', 'Failed to generate questions. Please try again.');
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -542,9 +558,7 @@ Please format as a numbered list with clear, specific questions.`;
                   ))}
                   
                   {isLoading && (
-                    <View className="self-start bg-gray-200 p-3 rounded-lg mb-4">
-                      <Text className="text-gray-600">AI is thinking...</Text>
-                    </View>
+                    <AILoadingIndicator message={loadingMessage} />
                   )}
                 </View>
               )}
@@ -556,9 +570,13 @@ Please format as a numbered list with clear, specific questions.`;
                 <TextInput
                   value={inputText}
                   onChangeText={setInputText}
-                  placeholder="Ask a question..."
+                  placeholder={isLoading ? "AI is responding..." : "Ask a question..."}
                   multiline
-                  className="flex-1 border border-gray-300 rounded-lg px-4 py-3 mr-3 max-h-24"
+                  editable={!isLoading}
+                  className={cn(
+                    "flex-1 border rounded-lg px-4 py-3 mr-3 max-h-24",
+                    isLoading ? "border-gray-200 bg-gray-50" : "border-gray-300 bg-white"
+                  )}
                 />
                 <Pressable
                   onPress={sendMessage}
@@ -568,11 +586,15 @@ Please format as a numbered list with clear, specific questions.`;
                     inputText.trim() && !isLoading ? "bg-emerald-500" : "bg-gray-300"
                   )}
                 >
-                  <Ionicons
-                    name="send"
-                    size={20}
-                    color="white"
-                  />
+                  {isLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Ionicons
+                      name="send"
+                      size={20}
+                      color="white"
+                    />
+                  )}
                 </Pressable>
               </View>
             </View>
