@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Alert, Switch, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
@@ -14,6 +15,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) => {
+  const navigation = useNavigation();
   const { user, signOut, updateUser, updatePreferences } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
   const { plan, limits, getTodayUsage } = useSubscriptionStore();
@@ -333,7 +335,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                       </View>
                       {plan === 'free' && (
                         <Pressable 
-                          onPress={() => setShowUpgradeModal(true)}
+                          onPress={() => {
+                            onClose();
+                            navigation.navigate('Subscription' as never);
+                          }}
                           style={{ backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
                         >
                           <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Upgrade</Text>

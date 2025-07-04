@@ -7,8 +7,10 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { TabNavigator } from './TabNavigator';
 import { RecordingDetailScreen } from '../screens/RecordingDetailScreen';
 import { DocumentDetailScreen } from '../screens/DocumentDetailScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
+import { RootStackParamList } from '../types/navigation';
 
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const LoadingScreen: React.FC = () => (
   <SafeAreaView className="flex-1 bg-white items-center justify-center">
@@ -55,6 +57,14 @@ export const AppNavigator: React.FC = () => {
       <Stack.Screen 
         name="DocumentDetail" 
         component={DocumentDetailScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Subscription" 
+        component={SubscriptionScreen}
         options={{
           presentation: 'modal',
           headerShown: false,

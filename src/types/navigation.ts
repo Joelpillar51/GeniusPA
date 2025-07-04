@@ -6,6 +6,7 @@ export type RootStackParamList = {
   DocumentDetail: {
     documentId: string;
   };
+  Subscription: undefined;
 };
 
 export type TabParamList = {
@@ -13,7 +14,7 @@ export type TabParamList = {
   Recordings: undefined;
   Documents: undefined;
   'AI Chat': undefined;
-  Profile: undefined;
+  Subscription: undefined;
 };
 
 declare global {

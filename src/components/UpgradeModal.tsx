@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UpgradePromptContext } from '../types/subscription';
 
@@ -15,45 +16,23 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onClose,
   context,
 }) => {
+  const navigation = useNavigation();
   const { plan, upgradePlan, recordUpgradePrompt } = useSubscriptionStore();
 
-  const handleUpgrade = (newPlan: 'pro' | 'premium') => {
-    upgradePlan(newPlan);
-    recordUpgradePrompt();
+  const handleUpgrade = () => {
     onClose();
+    navigation.navigate('Subscription' as never);
   };
 
-  const plans = [
-    {
-      id: 'pro',
-      name: 'Pro',
-      price: '$9.99/month',
-      color: '#10B981',
-      backgroundColor: '#ECFDF5',
-      features: [
-        '1 hour recording limit',
-        '50 recordings per day',
-        '100 documents',
-        '10 AI chat projects',
-        'All export formats',
-        'Email support',
-      ],
-    },
-    {
-      id: 'premium',
-      name: 'Premium',
-      price: '$19.99/month',
-      color: '#8B5CF6',
-      backgroundColor: '#F3E8FF',
-      features: [
-        'Unlimited recordings',
-        'Unlimited documents',
-        'Unlimited AI chats',
-        'All export formats',
-        'Priority support',
-        'Advanced analytics',
-      ],
-    },
+  const proFeatures = [
+    'Unlimited recording time',
+    'Unlimited recordings per day',
+    'Unlimited documents',
+    'Unlimited AI chat projects',
+    'Export to PDF & Word formats',
+    'Advanced AI insights',
+    'Priority support',
+    'No ads'
   ];
 
   return (
@@ -98,56 +77,41 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
               </View>
             </View>
 
-            {/* Plan Options */}
-            <View className="space-y-4">
-              {plans.map((planOption) => (
-                <View
-                  key={planOption.id}
-                  className="p-6 rounded-2xl border-2"
-                  style={{ 
-                    borderColor: planOption.color,
-                    backgroundColor: planOption.backgroundColor 
-                  }}
-                >
-                  <View className="flex-row items-center justify-between mb-4">
-                    <View>
-                      <Text className="text-2xl font-bold" style={{ color: planOption.color }}>
-                        {planOption.name}
-                      </Text>
-                      <Text className="text-lg font-semibold text-gray-900">
-                        {planOption.price}
-                      </Text>
-                    </View>
-                    <View 
-                      className="w-12 h-12 rounded-full items-center justify-center"
-                      style={{ backgroundColor: planOption.color }}
-                    >
-                      <Ionicons name="star" size={20} color="white" />
-                    </View>
-                  </View>
-
-                  {/* Features */}
-                  <View className="mb-6">
-                    {planOption.features.map((feature, index) => (
-                      <View key={index} className="flex-row items-center mb-2">
-                        <Ionicons name="checkmark-circle" size={16} color={planOption.color} />
-                        <Text className="ml-2 text-gray-700">{feature}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Upgrade Button */}
-                  <Pressable
-                    onPress={() => handleUpgrade(planOption.id as 'pro' | 'premium')}
-                    className="rounded-xl py-4 items-center"
-                    style={{ backgroundColor: planOption.color }}
-                  >
-                    <Text className="text-white font-bold text-lg">
-                      Upgrade to {planOption.name}
-                    </Text>
-                  </Pressable>
+            {/* Pro Plan */}
+            <View className="p-6 rounded-2xl border-2 border-emerald-500 bg-emerald-50">
+              <View className="flex-row items-center justify-between mb-4">
+                <View>
+                  <Text className="text-2xl font-bold text-emerald-600">
+                    GeniusPA Pro
+                  </Text>
+                  <Text className="text-lg font-semibold text-gray-900">
+                    Starting at $5.99/month
+                  </Text>
                 </View>
-              ))}
+                <View className="w-12 h-12 rounded-full items-center justify-center bg-emerald-500">
+                  <Ionicons name="star" size={20} color="white" />
+                </View>
+              </View>
+
+              {/* Features */}
+              <View className="mb-6">
+                {proFeatures.map((feature, index) => (
+                  <View key={index} className="flex-row items-center mb-2">
+                    <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                    <Text className="ml-2 text-gray-700">{feature}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* Upgrade Button */}
+              <Pressable
+                onPress={handleUpgrade}
+                className="rounded-xl py-4 items-center bg-emerald-500"
+              >
+                <Text className="text-white font-bold text-lg">
+                  Choose Your Plan
+                </Text>
+              </Pressable>
             </View>
 
             {/* Benefits */}

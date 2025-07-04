@@ -5,6 +5,12 @@ export interface User {
   avatar?: string;
   createdAt: Date;
   preferences: UserPreferences;
+  subscription?: {
+    isActive: boolean;
+    plan: 'free' | 'pro' | 'premium';
+    billingCycle: 'monthly' | 'yearly';
+    expiresAt: Date;
+  };
 }
 
 export interface UserPreferences {

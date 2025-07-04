@@ -5,7 +5,7 @@ import { OverviewScreen } from '../screens/OverviewScreen';
 import { RecordingsScreen } from '../screens/RecordingsScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
+import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -64,11 +64,11 @@ export const TabNavigator: React.FC = () => {
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Subscription"
+        component={SubscriptionScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+            <Ionicons name="diamond" size={size} color={color} />
           ),
         }}
       />

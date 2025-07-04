@@ -45,6 +45,7 @@ interface SubscriptionStore extends SubscriptionState {
   
   // Subscription management
   upgradePlan: (plan: SubscriptionPlan) => void;
+  updateSubscription: (subscription: any) => void;
   resetUsage: () => void;
   getTodayUsage: () => DailyUsage;
   
@@ -205,6 +206,15 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
           limits: SUBSCRIPTION_LIMITS[plan],
           isActive: true,
           expiresAt: plan !== 'free' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : undefined, // 30 days
+        });
+      },
+
+      updateSubscription: (subscription: any) => {
+        set({
+          plan: 'pro', // Always upgrade to pro for now
+          limits: SUBSCRIPTION_LIMITS.pro,
+          isActive: subscription.isActive,
+          expiresAt: subscription.expiresAt,
         });
       },
 
