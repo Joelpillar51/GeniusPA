@@ -17,7 +17,6 @@ export const RecordingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { recordings, deleteRecording, updateRecording } = useMeetingStore();
-  const { user } = useAuthStore();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
 
