@@ -3,8 +3,6 @@ import { View, Text, ScrollView, Pressable, Alert, TextInput } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { EditableText } from '../components/EditableText';
@@ -12,8 +10,7 @@ import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
-import { processUploadedDocument } from '../utils/simpleDocumentProcessor';
-import { processDocumentFromUrl } from '../utils/urlDocumentProcessor';
+import { processDocumentFromUrl, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
 
 export const DocumentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -80,7 +77,7 @@ export const DocumentsScreen: React.FC = () => {
         // Processing failed
         Alert.alert(
           'URL Processing Failed',
-          processedUrl.error || 'Could not extract content from this URL. Please try:\n\n• Checking the URL is correct and accessible\n• Using a different webpage or document URL\n• Uploading a file instead',
+          processedUrl.error || 'Could not extract content from this URL. Please try:\n\n• Checking the URL is correct and accessible\n• Using a different webpage or document URL\n• Try a different URL',
           [{ text: 'Try Again' }]
         );
       }
@@ -93,173 +90,6 @@ export const DocumentsScreen: React.FC = () => {
       );
     } finally {
       setIsProcessingUrl(false);
-    }
-  };
-
-  const pickDocument = async () => {
-    // Check subscription limits
-    const documentCheck = canAddDocument();
-    if (!documentCheck.allowed) {
-      Alert.alert('Document Limit Reached', documentCheck.reason!, [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
-      ]);
-      return;
-    }
-
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: [
-          'text/plain',
-          'text/markdown', 
-          'text/csv',
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/*'
-        ],
-        copyToCacheDirectory: true,
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        console.log('Selected file:', {
-          name: file.name,
-          size: file.size,
-          type: file.mimeType,
-          uri: file.uri
-        });
-        
-        // Show processing alert for large files
-        if (file.size && file.size > 5 * 1024 * 1024) { // 5MB
-          Alert.alert(
-            'Large File Detected',
-            `"${file.name}" is ${(file.size / 1024 / 1024).toFixed(1)} MB. Large files may take longer to process or may fail. Continue?`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Process Anyway', onPress: () => processDocument(file) }
-            ]
-          );
-        } else {
-          await processDocument(file);
-        }
-      }
-    } catch (error) {
-      console.error('Error picking document:', error);
-      Alert.alert(
-        'File Selection Error', 
-        'Failed to select document. Please try again or choose a different file.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  const processDocument = async (file: DocumentPicker.DocumentPickerAsset) => {
-    console.log('Processing document:', file.name, file.mimeType, file.size);
-    
-    // Create initial document entry
-    const newDocument: Document = {
-      id: Date.now().toString(),
-      name: file.name,
-      uri: file.uri,
-      type: file.mimeType || 'unknown',
-      createdAt: new Date(),
-      isProcessing: true,
-    };
-
-    // Track usage
-    const usageAdded = addDocumentUsage();
-    if (!usageAdded) {
-      console.warn('Failed to track document usage');
-    }
-
-    addDocument(newDocument);
-
-    try {
-      // Process document using the reliable processor
-      const result = await processUploadedDocument(file);
-      
-      if (result.success && result.extractedText) {
-        // Update document with successfully extracted content
-        updateDocument(newDocument.id, {
-          transcript: result.extractedText,
-          isProcessing: false,
-        });
-
-        console.log(`Successfully processed ${file.name}: ${result.extractedText.length} characters`);
-        
-        // Show success message
-        setTimeout(() => {
-          Alert.alert(
-            '✅ Document Processed Successfully!',
-            `"${file.name}" has been processed and ${result.extractedText.length} characters of text were extracted.\n\nYou can now:\n• View and edit the content\n• Generate summaries\n• Use it in AI Chat`,
-            [{ text: 'OK' }]
-          );
-        }, 500);
-        
-      } else {
-        // Processing failed - show error and helpful content
-        const errorContent = `Document "${file.name}" could not be processed automatically.
-
-Error: ${result.error || 'Unknown processing error'}
-
-What you can do:
-1. For PDFs: Try saving as a text file (.txt) first
-2. For Word docs: Copy and paste the text content
-3. Make sure the file contains readable text (not just images)
-4. Try uploading a different file format
-
-Supported formats:
-• Text files (.txt, .md, .csv) - Work best
-• PDFs with selectable text - Usually work
-• Word documents (.docx) - May need conversion
-
-You can edit this document and paste the text content manually.`;
-
-        updateDocument(newDocument.id, {
-          transcript: errorContent,
-          isProcessing: false,
-        });
-
-        setTimeout(() => {
-          Alert.alert(
-            '⚠️ Document Processing Failed',
-            `${result.error || 'Could not extract text from this document.'}\n\nThe document has been saved and you can:\n• Edit it manually to add content\n• Try converting to .txt format first\n• Check if the file contains readable text`,
-            [{ text: 'OK' }]
-          );
-        }, 500);
-      }
-
-    } catch (error) {
-      console.error('Error processing document:', error);
-      
-      // Update with generic error message
-      updateDocument(newDocument.id, {
-        transcript: `Document "${file.name}" encountered an error during processing.
-
-Error: ${error instanceof Error ? error.message : 'Unknown error'}
-
-This could be due to:
-• Unsupported file format
-• Corrupted file
-• Network issues
-• File too large or complex
-
-Try:
-1. Converting to .txt format first
-2. Using a smaller file
-3. Checking the file isn't corrupted
-4. Uploading a different document
-
-You can edit this document to add content manually.`,
-        isProcessing: false,
-      });
-
-      Alert.alert(
-        'Processing Error',
-        'An error occurred while processing the document. The document has been saved and you can edit it manually.',
-        [{ text: 'OK' }]
-      );
     }
   };
 
@@ -281,27 +111,22 @@ You can edit this document to add content manually.`,
     );
   };
 
-  const getFileIcon = (mimeType: string, fileName: string) => {
-    const extension = fileName.toLowerCase().split('.').pop() || '';
-    
-    if (mimeType.startsWith('url/')) return 'link';
-    if (mimeType.includes('pdf') || extension === 'pdf') return 'document-text';
-    if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'document-outline';
-    if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'document';
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith('url/')) {
+      return 'link';
+    }
     return 'document-outline';
   };
 
-  const getFileTypeLabel = (mimeType: string, fileName: string) => {
-    const extension = fileName.toLowerCase().split('.').pop() || '';
-    
+  const getFileTypeLabel = (mimeType: string) => {
     if (mimeType.startsWith('url/')) {
       const urlType = mimeType.split('/')[1];
-      return urlType === 'webpage' ? 'Web' : urlType.toUpperCase();
+      return urlType === 'webpage' ? 'Web Page' : 
+             urlType === 'text' ? 'Web Text' :
+             urlType === 'pdf' ? 'Web PDF' :
+             'Web Content';
     }
-    if (mimeType.includes('pdf') || extension === 'pdf') return 'PDF';
-    if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'Text';
-    if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'Word';
-    return 'Doc';
+    return 'Document';
   };
 
   return (
@@ -310,65 +135,75 @@ You can edit this document to add content manually.`,
         {/* Header */}
         <View className="px-6 py-4 border-b border-gray-200">
           <Text className="text-2xl font-bold text-gray-900">Documents</Text>
-          <Text className="text-gray-600 mt-1">{documents.length} documents</Text>
+          <Text className="text-gray-600 mt-1">{documents.length} documents from URLs</Text>
         </View>
 
-        {/* Upload Section */}
-        <View className="py-6 px-6 border-b border-gray-200">
-          {/* File Upload */}
+        {/* URL Input Section */}
+        <View className="py-8 px-6 border-b border-gray-200">
           <View className="items-center mb-6">
-            <Pressable
-              onPress={pickDocument}
-              className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center mb-4"
-            >
-              <Ionicons name="add" size={32} color="white" />
-            </Pressable>
-            <Text className="text-gray-600 text-center font-medium">
-              Upload a document to analyze with AI
+            <View className="w-20 h-20 bg-blue-100 rounded-full items-center justify-center mb-4">
+              <Ionicons name="link" size={32} color="#3B82F6" />
+            </View>
+            <Text className="text-xl font-bold text-gray-900 mb-2 text-center">
+              Add Document from URL
             </Text>
-            <Text className="text-gray-500 text-sm text-center mt-1">
-              Supports text files (.txt, .md, .csv) and PDFs
+            <Text className="text-gray-600 text-center">
+              Paste a URL to extract content and analyze with AI
             </Text>
           </View>
+          
+          <View className="flex-row items-center mb-4">
+            <TextInput
+              value={urlInput}
+              onChangeText={setUrlInput}
+              placeholder="https://example.com/article or document"
+              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base mr-3"
+              keyboardType="url"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isProcessingUrl}
+            />
+            <Pressable
+              onPress={processUrl}
+              disabled={!urlInput.trim() || isProcessingUrl}
+              className={`px-6 py-3 rounded-xl ${
+                urlInput.trim() && !isProcessingUrl ? 'bg-blue-500' : 'bg-gray-300'
+              }`}
+            >
+              {isProcessingUrl ? (
+                <Text className="text-white font-medium">...</Text>
+              ) : (
+                <Text className="text-white font-medium">Add</Text>
+              )}
+            </Pressable>
+          </View>
+          
+          {/* Supported URL Types */}
+          <View className="bg-blue-50 rounded-xl p-4 mb-4">
+            <Text className="text-blue-900 font-semibold mb-2">✅ Works Great With:</Text>
+            <Text className="text-blue-800 text-sm">• Web articles and blog posts</Text>
+            <Text className="text-blue-800 text-sm">• Documentation pages</Text>
+            <Text className="text-blue-800 text-sm">• Wikipedia articles</Text>
+            <Text className="text-blue-800 text-sm">• GitHub README files</Text>
+            <Text className="text-blue-800 text-sm">• Online text content</Text>
+          </View>
 
-          {/* URL Input Section */}
-          <View className="border-t border-gray-100 pt-6">
-            <View className="flex-row items-center mb-4">
-              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
-                <Ionicons name="link" size={18} color="#3B82F6" />
-              </View>
-              <Text className="text-gray-900 font-medium text-base">Or paste a URL</Text>
-            </View>
-            
-            <View className="flex-row items-center">
-              <TextInput
-                value={urlInput}
-                onChangeText={setUrlInput}
-                placeholder="https://example.com/article or document"
-                className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base mr-3"
-                keyboardType="url"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isProcessingUrl}
-              />
+          {/* Example URLs */}
+          <View>
+            <Text className="text-gray-700 font-medium mb-2">💡 Try these examples:</Text>
+            {[
+              'https://en.wikipedia.org/wiki/Artificial_intelligence',
+              'https://docs.expo.dev/guides/overview/',
+              'https://github.com/facebook/react-native/blob/main/README.md'
+            ].map((exampleUrl, index) => (
               <Pressable
-                onPress={processUrl}
-                disabled={!urlInput.trim() || isProcessingUrl}
-                className={`px-4 py-3 rounded-xl ${
-                  urlInput.trim() && !isProcessingUrl ? 'bg-blue-500' : 'bg-gray-300'
-                }`}
+                key={index}
+                onPress={() => setUrlInput(exampleUrl)}
+                className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2"
               >
-                {isProcessingUrl ? (
-                  <Text className="text-white font-medium">...</Text>
-                ) : (
-                  <Text className="text-white font-medium">Add</Text>
-                )}
+                <Text className="text-blue-600 text-sm">{exampleUrl}</Text>
               </Pressable>
-            </View>
-            
-            <Text className="text-gray-400 text-xs mt-2">
-              Web articles, documentation, and online text content work best
-            </Text>
+            ))}
           </View>
         </View>
 
@@ -376,10 +211,10 @@ You can edit this document to add content manually.`,
         <ScrollView className="flex-1">
           {sortedDocuments.length === 0 ? (
             <View className="flex-1 items-center justify-center py-12">
-              <Ionicons name="document-outline" size={64} color="#9CA3AF" />
+              <Ionicons name="link" size={64} color="#9CA3AF" />
               <Text className="text-gray-500 text-lg mt-4">No documents yet</Text>
               <Text className="text-gray-400 text-center mt-2 px-6">
-                Upload your first document to see it here
+                Add your first document from a URL to see it here
               </Text>
             </View>
           ) : (
@@ -394,7 +229,7 @@ You can edit this document to add content manually.`,
                     <View className="flex-1">
                       <View className="flex-row items-center mb-2">
                         <Ionicons
-                          name={getFileIcon(document.type, document.name)}
+                          name={getFileIcon(document.type)}
                           size={20}
                           color="#6B7280"
                         />
@@ -409,9 +244,9 @@ You can edit this document to add content manually.`,
                                 textStyle="font-semibold text-gray-900"
                               />
                             </View>
-                            <View className="ml-2 px-2 py-1 bg-gray-100 rounded-md">
-                              <Text className="text-gray-600 text-xs font-medium">
-                                {getFileTypeLabel(document.type, document.name)}
+                            <View className="ml-2 px-2 py-1 bg-blue-100 rounded-md">
+                              <Text className="text-blue-600 text-xs font-medium">
+                                {getFileTypeLabel(document.type)}
                               </Text>
                             </View>
                           </View>
@@ -506,9 +341,10 @@ You can edit this document to add content manually.`,
             feature: 'Documents',
             limitation: 'Free users can only add 1 document total (even after deletion).',
             benefits: [
-              'Upload up to 100 documents with Pro',
+              'Add up to 100 documents with Pro',
               'Unlimited documents with Premium',
-              'Process large files faster',
+              'Process larger web content faster',
+              'Access to premium URL processing features',
             ],
           }}
         />
