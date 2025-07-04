@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { processUploadedDocument, ProcessedDocument, getSupportedFileTypes } from '../utils/simpleDocumentProcessor';
-import { processSimpleUrl, SimpleUrlResult } from '../utils/simpleUrlProcessor';
-import { testUrlProcessing } from '../utils/testUrlProcessor';
+import { processDocumentFromUrl, UrlProcessingResult, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
 import { 
   createDocumentChatSession, 
   getDocumentChatSession, 
@@ -21,12 +20,10 @@ export const DocumentChatScreen: React.FC = () => {
   // Debug log
   useEffect(() => {
     console.log('DocumentChatScreen mounted successfully');
-    // Run URL test on mount
-    testUrlProcessing().catch(console.error);
   }, []);
   
   // State management
-  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | SimpleUrlResult | null>(null);
+  const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | UrlProcessingResult | null>(null);
   const [chatSession, setChatSession] = useState<DocumentChatSession | null>(null);
   const [inputText, setInputText] = useState('');
   const [urlInput, setUrlInput] = useState('');
@@ -57,37 +54,32 @@ export const DocumentChatScreen: React.FC = () => {
     
     try {
       console.log('Starting URL processing...');
-      // Process the URL and extract content using the simpler processor
-      const result = await processSimpleUrl(urlInput.trim());
+      // Process the URL and extract content
+      const result = await processDocumentFromUrl(urlInput.trim());
       
       console.log('URL processing result:', result);
       
-      if (result.success && result.content) {
+      if (result.success && result.extractedText) {
         console.log('URL processing successful, creating chat session...');
         
-        // Create a document-like object for consistency
-        const urlDocument: SimpleUrlResult & { id: string; extractedText: string } = {
-          ...result,
-          id: `url_${Date.now()}`,
-          extractedText: result.content
-        };
+        // Use the result directly since it already has the right structure
+        setCurrentDocument(result);
         
         // Create chat session with extracted content
         const session = createDocumentChatSession(
-          urlDocument.id,
+          result.id,
           result.title,
-          result.content
+          result.extractedText
         );
         
         console.log('Chat session created successfully');
         
-        setCurrentDocument(urlDocument);
         setChatSession(session);
         setUrlInput('');
         
         // Generate suggested questions
         try {
-          const suggestions = await generateSuggestedQuestions(result.content);
+          const suggestions = await generateSuggestedQuestions(result.extractedText);
           setSuggestedQuestions(suggestions);
           setShowSuggestions(true);
         } catch (error) {
@@ -410,15 +402,7 @@ export const DocumentChatScreen: React.FC = () => {
                     ))}
                     
                     {/* Debug button */}
-                    <Pressable
-                      onPress={() => {
-                        console.log('Running URL test...');
-                        testUrlProcessing();
-                      }}
-                      className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-2"
-                    >
-                      <Text className="text-yellow-800 text-sm">🔧 Test URL Processing</Text>
-                    </Pressable>
+
                   </View>
                 </View>
 
@@ -476,7 +460,7 @@ export const DocumentChatScreen: React.FC = () => {
                 {'fileName' in currentDocument ? currentDocument.fileName : currentDocument.title}
               </Text>
               <Text className="text-sm text-gray-600">
-                AI Chat • {'fileType' in currentDocument ? currentDocument.fileType.toUpperCase() : 'URL'} • {Math.round(('extractedText' in currentDocument ? currentDocument.extractedText : currentDocument.content).length / 1000)}k chars
+                AI Chat • {'fileType' in currentDocument ? currentDocument.fileType.toUpperCase() : currentDocument.contentType.toUpperCase()} • {Math.round(currentDocument.extractedText.length / 1000)}k chars
               </Text>
               {'url' in currentDocument && (
                 <Text className="text-xs text-blue-600 mt-1" numberOfLines={1}>
