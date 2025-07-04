@@ -14,6 +14,8 @@ import { CircularWaves } from './CircularWaves';
 import { ProcessingPulse } from './ProcessingPulse';
 import { useNavigation } from '@react-navigation/native';
 import { navigateToSubscription } from '../utils/subscriptionNavigation';
+import { getTranscriptionFallbackMessage, getUserFriendlyErrorMessage } from '../utils/transcriptionFallback';
+import { retryTranscription } from '../utils/transcriptionRetry';
 import { cn } from '../utils/cn';
 
 interface RecordingButtonProps {
@@ -134,7 +136,8 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
       // Start transcription process in background
       setTimeout(async () => {
         try {
-          const transcript = await transcribeAudio(uri);
+          // Use retry mechanism for better reliability
+          const transcript = await retryTranscription(uri, 2, 1000);
           
           if (transcript && transcript.trim().length > 0) {
             // Only save transcript, let user decide when to summarize
@@ -148,10 +151,38 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
 
         } catch (transcriptionError) {
           console.error('Transcription failed:', transcriptionError);
+          
+          // Handle specific error types with user-friendly messages
+          const errorType = transcriptionError instanceof Error 
+            ? transcriptionError.message 
+            : 'UNKNOWN_ERROR';
+            
+          const fallbackTranscript = getTranscriptionFallbackMessage(errorType);
+          const errorMessage = getUserFriendlyErrorMessage(errorType);
+          
+          // Update with fallback transcript
           updateRecording(newRecording.id, {
+            transcript: fallbackTranscript,
             isTranscribing: false,
           });
-          // Don't show alert immediately since user might have navigated away
+          
+          // Show user-friendly notification after a short delay
+          setTimeout(() => {
+            Alert.alert(
+              'Recording Saved Successfully',
+              errorMessage + '\n\n💡 Tip: You can edit the transcript manually by tapping the edit icon.',
+              [
+                { text: 'Got it', style: 'default' },
+                { text: 'View Tips', onPress: () => {
+                  Alert.alert(
+                    'Manual Transcription Tips',
+                    '• Use your phone\'s voice-to-text feature\n• Play sections and add key points\n• Focus on main topics, not every word\n• You can still use AI Chat with partial notes',
+                    [{ text: 'OK' }]
+                  );
+                }}
+              ]
+            );
+          }, 1500);
         }
       }, 100);
 

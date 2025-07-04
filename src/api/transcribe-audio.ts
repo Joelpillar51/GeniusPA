@@ -37,6 +37,21 @@ export const transcribeAudio = async (localAudioUri: string) => {
 
     if (!response.ok) {
       const errorText = await response.text();
+      const errorData = JSON.parse(errorText);
+      
+      // Handle specific error types
+      if (response.status === 503 || errorData.error?.message?.includes('rate limit')) {
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      
+      if (response.status === 413) {
+        throw new Error('FILE_TOO_LARGE');
+      }
+      
       throw new Error(`Transcription failed: ${errorText}`);
     }
 
@@ -44,6 +59,20 @@ export const transcribeAudio = async (localAudioUri: string) => {
     return result.text;
   } catch (error) {
     console.error("Transcription error:", error);
+    
+    // Re-throw with more specific error types
+    if (error instanceof Error) {
+      if (error.message === 'RATE_LIMIT_EXCEEDED') {
+        throw new Error('RATE_LIMIT_EXCEEDED');
+      }
+      if (error.message === 'INVALID_CREDENTIALS') {
+        throw new Error('INVALID_CREDENTIALS');
+      }
+      if (error.message === 'FILE_TOO_LARGE') {
+        throw new Error('FILE_TOO_LARGE');
+      }
+    }
+    
     throw error;
   }
 };

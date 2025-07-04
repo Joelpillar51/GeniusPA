@@ -10,6 +10,8 @@ import { ExportOptions } from '../components/ExportOptions';
 import { VoiceWaves } from '../components/VoiceWaves';
 import { Recording } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
+import { retryTranscription } from '../utils/transcriptionRetry';
+import { getTranscriptionFallbackMessage, getUserFriendlyErrorMessage } from '../utils/transcriptionFallback';
 
 interface RecordingDetailScreenProps {
   route: {
@@ -26,6 +28,7 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isRetryingTranscription, setIsRetryingTranscription] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
 
   const recording = recordings.find(r => r.id === recordingId);
@@ -92,6 +95,56 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
       setIsSummarizing(false);
     }
   };
+
+  const retryTranscriptionHandler = async () => {
+    if (!recording) return;
+    
+    setIsRetryingTranscription(true);
+    updateRecording(recording.id, { isTranscribing: true });
+    
+    try {
+      const transcript = await retryTranscription(recording.uri, 2, 1000);
+      
+      if (transcript && transcript.trim().length > 0) {
+        updateRecording(recording.id, {
+          transcript,
+          isTranscribing: false,
+        });
+        
+        Alert.alert(
+          'Transcription Successful!',
+          'Your recording has been transcribed successfully.',
+          [{ text: 'Great!' }]
+        );
+      } else {
+        throw new Error('Empty transcript received');
+      }
+    } catch (error) {
+      console.error('Retry transcription failed:', error);
+      
+      const errorType = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
+      const fallbackTranscript = getTranscriptionFallbackMessage(errorType);
+      const errorMessage = getUserFriendlyErrorMessage(errorType);
+      
+      updateRecording(recording.id, {
+        transcript: fallbackTranscript,
+        isTranscribing: false,
+      });
+      
+      Alert.alert(
+        'Transcription Still Unavailable',
+        errorMessage + '\n\nA template has been added to help you transcribe manually.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsRetryingTranscription(false);
+    }
+  };
+  
+  const isTranscriptionFailed = recording.transcript && 
+    (recording.transcript.includes('⚠️') || 
+     recording.transcript.includes('Automatic transcription') ||
+     recording.transcript.includes('temporarily unavailable'));
 
   const handleDelete = () => {
     Alert.alert(
@@ -235,10 +288,36 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
 
             {/* Transcript Section */}
             <View className="mb-6">
-              <Text className="text-lg font-semibold text-gray-900 mb-3">Transcript</Text>
+              <View className="flex-row items-center justify-between mb-3">
+                <Text className="text-lg font-semibold text-gray-900">Transcript</Text>
+                
+                {isTranscriptionFailed && (
+                  <Pressable
+                    onPress={retryTranscriptionHandler}
+                    disabled={isRetryingTranscription}
+                    className="flex-row items-center px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-200"
+                  >
+                    <Ionicons 
+                      name="refresh" 
+                      size={16} 
+                      color={isRetryingTranscription ? "#9CA3AF" : "#10B981"} 
+                    />
+                    <Text className={`ml-1 text-sm font-medium ${
+                      isRetryingTranscription ? "text-gray-400" : "text-emerald-700"
+                    }`}>
+                      {isRetryingTranscription ? "Retrying..." : "Retry Auto-Transcription"}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
               
               {recording.isTranscribing ? (
-                <Text className="text-blue-500 italic">Transcribing...</Text>
+                <View className="flex-row items-center">
+                  <Text className="text-blue-500 italic">Transcribing...</Text>
+                  {isRetryingTranscription && (
+                    <Text className="text-gray-500 text-sm ml-2">(Retry in progress)</Text>
+                  )}
+                </View>
               ) : recording.transcript ? (
                 <EditableText
                   text={recording.transcript}
