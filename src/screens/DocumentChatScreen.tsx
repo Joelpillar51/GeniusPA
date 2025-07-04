@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { processUploadedDocument, ProcessedDocument, getSupportedFileTypes } from '../utils/simpleDocumentProcessor';
@@ -15,8 +15,12 @@ import {
 } from '../utils/documentChatSystem';
 
 export const DocumentChatScreen: React.FC = () => {
-  const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Debug log
+  useEffect(() => {
+    console.log('DocumentChatScreen mounted successfully');
+  }, []);
   
   // State management
   const [currentDocument, setCurrentDocument] = useState<ProcessedDocument | UrlProcessingResult | null>(null);
@@ -491,7 +495,7 @@ export const DocumentChatScreen: React.FC = () => {
         )}
 
         {/* Input */}
-        <View className="px-4 py-3 border-t border-gray-200 bg-white" style={{ paddingBottom: insets.bottom + 12 }}>
+        <View className="px-4 py-3 border-t border-gray-200 bg-white pb-6">
           <View className="flex-row items-end">
             <TextInput
               value={inputText}
