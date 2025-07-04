@@ -25,7 +25,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  relatedItemId?: string; // Recording or Document ID
+  relatedItemId?: string | null; // Recording or Document ID, null for direct chat
 }
 
 export interface ChatSession {
@@ -34,6 +34,6 @@ export interface ChatSession {
   messages: ChatMessage[];
   createdAt: Date;
   updatedAt: Date;
-  relatedItemId?: string; // Recording or Document ID
-  relatedItemType?: 'recording' | 'document';
+  relatedItemId?: string | null; // Recording or Document ID, null for direct chat
+  relatedItemType?: 'recording' | 'document' | null; // null for direct chat
 }

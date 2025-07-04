@@ -20,12 +20,14 @@ export const ChatScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [directChatMode, setDirectChatMode] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const allItems = [
-    ...recordings.map(r => ({ id: r.id, type: 'recording' as const, title: r.title, hasContent: !!r.transcript })),
-    ...documents.map(d => ({ id: d.id, type: 'document' as const, title: d.name, hasContent: !!d.transcript }))
-  ].filter(item => item.hasContent);
+    ...recordings.map(r => ({ id: r.id, type: 'recording' as const, title: r.title, hasContent: !!r.transcript, createdAt: r.createdAt })),
+    ...documents.map(d => ({ id: d.id, type: 'document' as const, title: d.name, hasContent: !!d.transcript, createdAt: d.createdAt }))
+  ].filter(item => item.hasContent)
+   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Newest first
 
   useEffect(() => {
     if (selectedItem) {
@@ -99,33 +101,56 @@ What would you like to explore about this document?`,
     }
   }, [chatSessions, selectedItem, currentSession?.id]);
 
-  const sendMessage = async () => {
-    if (!inputText.trim() || !selectedItem || !currentSession) return;
+  // Handle direct AI chat mode
+  const startDirectChat = () => {
+    setDirectChatMode(true);
+    setSelectedItem(null);
+    
+    // Create or get direct chat session
+    const directChatId = 'direct_chat_general';
+    const existingDirectSession = chatSessions.find(s => s.id === directChatId);
+    
+    if (existingDirectSession) {
+      setCurrentSession(existingDirectSession);
+    } else {
+      const newDirectSession: ChatSession = {
+        id: directChatId,
+        title: 'AI Chat',
+        messages: [{
+          id: `welcome_${Date.now()}`,
+          role: 'assistant',
+          content: `Hello! I'm your AI assistant. I can help you with a wide range of topics including:
 
-    // Check if the question is about the current project's content
-    const isOffTopicQuestion = checkIfOffTopic(inputText.trim());
-    if (isOffTopicQuestion) {
-      const assistantMessage: ChatMessage = {
-        id: `msg_${Date.now()}_upgrade`,
-        role: 'assistant',
-        content: "Please upgrade your plan to proceed. Free users can only ask questions about their selected recording or document content.",
-        timestamp: new Date(),
-        relatedItemId: selectedItem.id,
+• Answering questions and providing explanations
+• Writing and editing assistance
+• Analysis and research help
+• Creative brainstorming
+• Technical guidance
+• General conversation
+
+What would you like to chat about today?`,
+          timestamp: new Date(),
+        }],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        relatedItemId: null,
+        relatedItemType: null,
       };
-      addMessageToSession(currentSession.id, assistantMessage);
       
-      setTimeout(() => {
-        setShowUpgradeModal(true);
-      }, 1000);
-      return;
+      createChatSession(newDirectSession);
+      setCurrentSession(newDirectSession);
     }
+  };
+
+  const sendMessage = async () => {
+    if (!inputText.trim() || !currentSession) return;
 
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'user',
       content: inputText.trim(),
       timestamp: new Date(),
-      relatedItemId: selectedItem.id,
+      relatedItemId: selectedItem?.id || null,
     };
 
     addMessageToSession(currentSession.id, userMessage);
@@ -133,46 +158,75 @@ What would you like to explore about this document?`,
     setIsLoading(true);
 
     try {
-      // Get the content for context
-      const item = selectedItem.type === 'recording' 
-        ? recordings.find(r => r.id === selectedItem.id)
-        : documents.find(d => d.id === selectedItem.id);
-
-      const content = item?.transcript || '';
-      
-      // Debug logging to see what content we're working with
-      console.log('Chat content length:', content.length);
-      console.log('Chat content preview:', content.substring(0, 200));
-      
-      // Check if the document content is actually extractable or just a placeholder
-      const isPlaceholderContent = content.includes('📄') || 
-                                   content.includes('PDF document') || 
-                                   content.includes('uploaded successfully') ||
-                                   content.includes('manual text extraction') ||
-                                   content.includes('cannot directly read') ||
-                                   content.includes('However, you can use the AI Chat') ||
-                                   content.includes('AI Chat integration') ||
-                                   content.includes('Copy and paste specific text sections');
-      
       let contextPrompt = '';
       
-      if (isPlaceholderContent || !content.trim() || content.length < 50) {
-        // Handle cases where we don't have actual extractable content
-        const fileName = selectedItem.title.toLowerCase();
-        let topicHint = '';
+      if (directChatMode || !selectedItem) {
+        // Direct AI chat mode - no document context
+        contextPrompt = `You are a helpful AI assistant. Please provide a comprehensive and helpful response to the user's question or request.
+
+User's message: ${inputText.trim()}
+
+Please provide a thoughtful, accurate, and helpful response. You can use your general knowledge to assist the user.`;
+      } else {
+        // Document/recording-based chat mode
         
-        // Try to provide helpful context based on filename
-        if (fileName.includes('secret') || fileName.includes('pro')) {
-          topicHint = ' This appears to be a professional or confidential document.';
-        } else if (fileName.includes('report') || fileName.includes('analysis')) {
-          topicHint = ' This seems to be a report or analysis document.';
-        } else if (fileName.includes('guide') || fileName.includes('manual')) {
-          topicHint = ' This looks like a guide or manual.';
-        } else if (fileName.includes('contract') || fileName.includes('agreement')) {
-          topicHint = ' This appears to be a contract or agreement.';
+        // Check if the question is about the current project's content for free users
+        const isOffTopicQuestion = checkIfOffTopic(inputText.trim());
+        if (isOffTopicQuestion) {
+          const assistantMessage: ChatMessage = {
+            id: `msg_${Date.now()}_upgrade`,
+            role: 'assistant',
+            content: "Please upgrade your plan to proceed. Free users can only ask questions about their selected recording or document content.",
+            timestamp: new Date(),
+            relatedItemId: selectedItem.id,
+          };
+          addMessageToSession(currentSession.id, assistantMessage);
+          setIsLoading(false);
+          
+          setTimeout(() => {
+            setShowUpgradeModal(true);
+          }, 1000);
+          return;
         }
 
-        contextPrompt = `I can see you're asking about the ${selectedItem.type === 'recording' ? 'recording' : 'document'} "${selectedItem.title}".${topicHint}
+        // Get the content for context
+        const item = selectedItem.type === 'recording' 
+          ? recordings.find(r => r.id === selectedItem.id)
+          : documents.find(d => d.id === selectedItem.id);
+
+        const content = item?.transcript || '';
+        
+        // Debug logging to see what content we're working with
+        console.log('Chat content length:', content.length);
+        console.log('Chat content preview:', content.substring(0, 200));
+        
+        // Check if the document content is actually extractable or just a placeholder
+        const isPlaceholderContent = content.includes('📄') || 
+                                     content.includes('PDF document') || 
+                                     content.includes('uploaded successfully') ||
+                                     content.includes('manual text extraction') ||
+                                     content.includes('cannot directly read') ||
+                                     content.includes('However, you can use the AI Chat') ||
+                                     content.includes('AI Chat integration') ||
+                                     content.includes('Copy and paste specific text sections');
+        
+        if (isPlaceholderContent || !content.trim() || content.length < 50) {
+          // Handle cases where we don't have actual extractable content
+          const fileName = selectedItem.title.toLowerCase();
+          let topicHint = '';
+          
+          // Try to provide helpful context based on filename
+          if (fileName.includes('secret') || fileName.includes('pro')) {
+            topicHint = ' This appears to be a professional or confidential document.';
+          } else if (fileName.includes('report') || fileName.includes('analysis')) {
+            topicHint = ' This seems to be a report or analysis document.';
+          } else if (fileName.includes('guide') || fileName.includes('manual')) {
+            topicHint = ' This looks like a guide or manual.';
+          } else if (fileName.includes('contract') || fileName.includes('agreement')) {
+            topicHint = ' This appears to be a contract or agreement.';
+          }
+
+          contextPrompt = `I can see you're asking about the ${selectedItem.type === 'recording' ? 'recording' : 'document'} "${selectedItem.title}".${topicHint}
 
 However, I cannot directly access the content of this file for detailed analysis. This is common with PDFs and certain document formats.
 
@@ -190,9 +244,9 @@ I can offer general guidance about ${fileName.includes('report') ? 'report analy
 Edit the document in the Documents tab and add the text content - then I'll be able to analyze the entire document.
 
 Would you like to share some specific text for analysis, or would you prefer general guidance about working with this type of document?`;
-      } else {
-        // We have actual content to analyze
-        contextPrompt = `You are an AI assistant analyzing ${selectedItem.type === 'recording' ? 'a meeting/class recording' : 'a document'} titled "${selectedItem.title}". 
+        } else {
+          // We have actual content to analyze
+          contextPrompt = `You are an AI assistant analyzing ${selectedItem.type === 'recording' ? 'a meeting/class recording' : 'a document'} titled "${selectedItem.title}". 
 
 Here is the extracted content:
 
@@ -201,6 +255,7 @@ ${content}
 User's question: ${inputText.trim()}
 
 Please provide a comprehensive and helpful response based on the content provided. Be specific and reference details from the content when answering. If the question is not directly related to the provided content, politely redirect to ask questions about the specific material.`;
+        }
       }
 
       const response = await getOpenAIChatResponse(contextPrompt);
@@ -210,7 +265,7 @@ Please provide a comprehensive and helpful response based on the content provide
         role: 'assistant',
         content: response.content,
         timestamp: new Date(),
-        relatedItemId: selectedItem.id,
+        relatedItemId: selectedItem?.id || null,
       };
 
       addMessageToSession(currentSession.id, assistantMessage);
@@ -308,76 +363,126 @@ Please format as a numbered list with clear, specific questions.`;
           <Text className="text-gray-600 mt-1">Ask questions about your content</Text>
         </View>
 
-        {!selectedItem ? (
+        {!selectedItem && !directChatMode ? (
           /* Item Selection */
           <ScrollView className="flex-1">
             <View className="px-6 py-4">
-              <Text className="text-lg font-semibold text-gray-900 mb-4">
-                Choose content to discuss:
-              </Text>
-              
-              {allItems.length === 0 ? (
-                <View className="items-center py-12">
-                  <Ionicons name="chatbubbles-outline" size={64} color="#9CA3AF" />
-                  <Text className="text-gray-500 text-lg mt-4">No content available</Text>
-                  <Text className="text-gray-400 text-center mt-2 px-6">
-                    Record audio or upload documents first to start chatting
-                  </Text>
-                </View>
-              ) : (
-                allItems.map((item) => (
-                  <Pressable
-                    key={`${item.type}_${item.id}`}
-                    onPress={() => {
-                      const chatCheck = canUseAIChat(item.id);
-                      if (!chatCheck.allowed) {
-                        Alert.alert('Upgrade Required', chatCheck.reason!, [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
-                        ]);
-                        return;
-                      }
-                      setChatProject(item.id, item.type);
-                      setSelectedItem(item);
-                    }}
-                    className="mb-3 p-4 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <View className="flex-row items-center">
-                      <Ionicons
-                        name={item.type === 'recording' ? 'mic' : 'document-text'}
-                        size={24}
-                        color="#6B7280"
-                      />
-                      <Text className="ml-3 font-medium text-gray-900 flex-1">
-                        {item.title}
-                      </Text>
-                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              {/* Direct AI Chat Option */}
+              <View className="mb-6">
+                <Text className="text-lg font-semibold text-gray-900 mb-4">
+                  Start a conversation:
+                </Text>
+                
+                <Pressable
+                  onPress={startDirectChat}
+                  className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200"
+                  style={{ backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }}
+                >
+                  <View className="flex-row items-center">
+                    <View className="w-12 h-12 bg-blue-500 rounded-full items-center justify-center mr-4">
+                      <Ionicons name="chatbubbles" size={20} color="white" />
                     </View>
-                  </Pressable>
-                ))
-              )}
+                    <View className="flex-1">
+                      <Text className="font-bold text-blue-900 text-lg">Chat with AI</Text>
+                      <Text className="text-blue-700 text-sm">Ask questions, get help, or have a conversation</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={24} color="#3B82F6" />
+                  </View>
+                </Pressable>
+              </View>
+
+              {/* Document/Recording Selection */}
+              <View>
+                <Text className="text-lg font-semibold text-gray-900 mb-4">
+                  Or chat about your content:
+                </Text>
+                
+                {allItems.length === 0 ? (
+                  <View className="items-center py-8 bg-gray-50 rounded-xl">
+                    <Ionicons name="document-outline" size={48} color="#9CA3AF" />
+                    <Text className="text-gray-500 text-base mt-3">No content available</Text>
+                    <Text className="text-gray-400 text-center mt-1 px-6 text-sm">
+                      Add documents from URLs first to chat about them
+                    </Text>
+                  </View>
+                ) : (
+                  allItems.map((item) => (
+                    <Pressable
+                      key={`${item.type}_${item.id}`}
+                      onPress={() => {
+                        const chatCheck = canUseAIChat(item.id);
+                        if (!chatCheck.allowed) {
+                          Alert.alert('Upgrade Required', chatCheck.reason!, [
+                            { text: 'Cancel', style: 'cancel' },
+                            { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+                          ]);
+                          return;
+                        }
+                        setChatProject(item.id, item.type);
+                        setSelectedItem(item);
+                        setDirectChatMode(false);
+                      }}
+                      className="mb-3 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <View className="flex-row items-center">
+                        <Ionicons
+                          name={item.type === 'recording' ? 'mic' : 'link'}
+                          size={24}
+                          color="#6B7280"
+                        />
+                        <Text className="ml-3 font-medium text-gray-900 flex-1" numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text className="text-gray-500 text-xs mr-2 capitalize">
+                          {item.type === 'recording' ? 'Recording' : 'Document'}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                      </View>
+                    </Pressable>
+                  ))
+                )}
+              </View>
             </View>
           </ScrollView>
         ) : (
           /* Chat Interface */
           <View className="flex-1">
-            {/* Selected Item Header */}
+            {/* Chat Header */}
             <View className="px-6 py-3 bg-gray-50 border-b border-gray-200">
               <View className="flex-row items-center">
-                <Pressable onPress={() => setSelectedItem(null)} className="mr-3">
+                <Pressable 
+                  onPress={() => {
+                    setSelectedItem(null);
+                    setDirectChatMode(false);
+                  }} 
+                  className="mr-3"
+                >
                   <Ionicons name="arrow-back" size={24} color="#6B7280" />
                 </Pressable>
-                <Ionicons
-                  name={selectedItem.type === 'recording' ? 'mic' : 'document-text'}
-                  size={20}
-                  color="#6B7280"
-                />
-                <Text className="ml-2 font-medium text-gray-900 flex-1">
-                  {selectedItem.title}
-                </Text>
-                <Pressable onPress={generateQuestions} disabled={isLoading} className="p-2">
-                  <Ionicons name="help-circle-outline" size={24} color="#10B981" />
-                </Pressable>
+                
+                {directChatMode ? (
+                  <>
+                    <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center mr-3">
+                      <Ionicons name="chatbubbles" size={16} color="white" />
+                    </View>
+                    <Text className="font-medium text-gray-900 flex-1">AI Chat</Text>
+                  </>
+                ) : selectedItem ? (
+                  <>
+                    <Ionicons
+                      name={selectedItem.type === 'recording' ? 'mic' : 'link'}
+                      size={20}
+                      color="#6B7280"
+                    />
+                    <Text className="ml-2 font-medium text-gray-900 flex-1" numberOfLines={1}>
+                      {selectedItem.title}
+                    </Text>
+                    <Pressable onPress={generateQuestions} disabled={isLoading} className="p-2">
+                      <Ionicons name="help-circle-outline" size={24} color="#10B981" />
+                    </Pressable>
+                  </>
+                ) : null}
+                
                 {currentSession && currentSession.messages.length > 0 && (
                   <Pressable onPress={exportChat} className="p-2">
                     <Ionicons name="share-outline" size={24} color="#10B981" />
@@ -397,7 +502,12 @@ Please format as a numbered list with clear, specific questions.`;
                   <Ionicons name="chatbubble-outline" size={48} color="#9CA3AF" />
                   <Text className="text-gray-500 text-lg mt-4">Start a conversation</Text>
                   <Text className="text-gray-400 text-center mt-2 px-6">
-                    Ask questions about this {selectedItem.type}
+                    {directChatMode 
+                      ? "Ask me anything - I'm here to help!"
+                      : selectedItem 
+                        ? `Ask questions about this ${selectedItem.type}`
+                        : "Start chatting"
+                    }
                   </Text>
                 </View>
               ) : (
