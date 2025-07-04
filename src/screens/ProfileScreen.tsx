@@ -14,7 +14,7 @@ export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, signOut, updateUser, updatePreferences } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
-  const { plan, limits, getTodayUsage } = useSubscriptionStore();
+  const { plan, limits, getTodayUsage, cancelSubscription } = useSubscriptionStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -70,6 +70,28 @@ export const ProfileScreen: React.FC = () => {
         [key]: value,
       }
     });
+  };
+
+  const handleCancelSubscription = () => {
+    Alert.alert(
+      'Cancel Subscription',
+      `Are you sure you want to cancel your ${plan} plan? You will lose access to premium features and your account will be downgraded to the free plan.`,
+      [
+        { text: 'Keep Subscription', style: 'cancel' },
+        { 
+          text: 'Cancel Subscription', 
+          style: 'destructive', 
+          onPress: () => {
+            cancelSubscription();
+            Alert.alert(
+              'Subscription Cancelled',
+              'Your subscription has been cancelled. You now have access to free plan features.',
+              [{ text: 'OK' }]
+            );
+          }
+        },
+      ]
+    );
   };
 
   const showDataInfo = () => {
@@ -162,6 +184,57 @@ export const ProfileScreen: React.FC = () => {
               </Text>
             </Pressable>
           </View>
+
+          {/* Subscription Management */}
+          {plan !== 'free' && (
+            <View className="mb-8 bg-white rounded-2xl p-6 border border-gray-100">
+              <View className="flex-row items-center mb-4">
+                <View className="w-10 h-10 bg-orange-100 rounded-xl items-center justify-center mr-3">
+                  <Ionicons name="card" size={20} color="#F97316" />
+                </View>
+                <Text className="text-gray-900 font-semibold text-lg">Subscription Management</Text>
+              </View>
+              
+              <View className="space-y-4">
+                <View className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <View className="flex-1">
+                    <Text className="text-gray-900 font-medium text-base">
+                      Current Plan: {plan.charAt(0).toUpperCase() + plan.slice(1)}
+                    </Text>
+                    <Text className="text-gray-600 text-sm mt-1">
+                      {plan === 'pro' ? 'Extended features and higher limits' : 'Premium features with unlimited usage'}
+                    </Text>
+                  </View>
+                  <View className={cn(
+                    "px-3 py-1 rounded-full",
+                    plan === 'pro' ? "bg-emerald-100" : "bg-purple-100"
+                  )}>
+                    <Text className={cn(
+                      "text-xs font-medium",
+                      plan === 'pro' ? "text-emerald-700" : "text-purple-700"
+                    )}>
+                      Active
+                    </Text>
+                  </View>
+                </View>
+                
+                <Pressable
+                  onPress={handleCancelSubscription}
+                  className="bg-red-50 border border-red-200 rounded-xl p-4 items-center"
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="close-circle-outline" size={20} color="#EF4444" />
+                    <Text className="text-red-600 font-semibold text-base ml-2">
+                      Cancel Subscription
+                    </Text>
+                  </View>
+                  <Text className="text-red-500 text-xs mt-1 text-center">
+                    Downgrade to free plan and lose premium features
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
 
           {/* Usage Stats */}
           <View className="mb-8 bg-gray-50 rounded-2xl p-6">
