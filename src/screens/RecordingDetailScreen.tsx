@@ -7,6 +7,7 @@ import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
 import { ExportOptions } from '../components/ExportOptions';
+import { VoiceWaves } from '../components/VoiceWaves';
 import { Recording } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
 
@@ -167,7 +168,7 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
             <View className="mb-6">
               <Pressable
                 onPress={playRecording}
-                className="flex-row items-center justify-center bg-emerald-500 rounded-lg py-3 px-6"
+                className="flex-row items-center justify-center bg-emerald-500 rounded-lg py-3 px-6 mb-4"
               >
                 <Ionicons
                   name={isPlaying ? "pause" : "play"}
@@ -178,6 +179,15 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
                   {isPlaying ? "Pause" : "Play Recording"}
                 </Text>
               </Pressable>
+              
+              {/* Voice waves when playing */}
+              <View className="h-6 items-center justify-center">
+                <VoiceWaves 
+                  isRecording={isPlaying} 
+                  size="small" 
+                  color="#10B981" 
+                />
+              </View>
             </View>
 
             {/* Summary Section */}

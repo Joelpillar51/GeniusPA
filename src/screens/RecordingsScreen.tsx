@@ -10,6 +10,7 @@ import { RecordingButton } from '../components/RecordingButton';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
 import { ExportOptions } from '../components/ExportOptions';
+import { VoiceWaves } from '../components/VoiceWaves';
 import { Recording } from '../types/meeting';
 import { cn } from '../utils/cn';
 
@@ -174,17 +175,27 @@ export const RecordingsScreen: React.FC = () => {
                       )}
                     </View>
                     
-                    <View className="flex-row ml-4">
-                      <Pressable
-                        onPress={() => playRecording(recording)}
-                        className="p-2 mr-2"
-                      >
-                        <Ionicons
-                          name={playingId === recording.id ? "pause" : "play"}
-                          size={24}
-                          color="#10B981"
+                    <View className="flex-col items-end ml-4">
+                      {/* Voice waves for playing state */}
+                      <View className="h-4 mb-2">
+                        <VoiceWaves 
+                          isRecording={playingId === recording.id} 
+                          size="small" 
+                          color="#10B981" 
                         />
-                      </Pressable>
+                      </View>
+                      
+                      <View className="flex-row">
+                        <Pressable
+                          onPress={() => playRecording(recording)}
+                          className="p-2 mr-2"
+                        >
+                          <Ionicons
+                            name={playingId === recording.id ? "pause" : "play"}
+                            size={24}
+                            color="#10B981"
+                          />
+                        </Pressable>
                       
                       {recording.transcript && (
                         <Pressable
@@ -201,6 +212,7 @@ export const RecordingsScreen: React.FC = () => {
                       >
                         <Ionicons name="trash-outline" size={24} color="#EF4444" />
                       </Pressable>
+                      </View>
                     </View>
                   </View>
                   

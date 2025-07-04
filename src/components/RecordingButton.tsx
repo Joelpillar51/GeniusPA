@@ -6,6 +6,10 @@ import { useMeetingStore } from '../state/meetingStore';
 import { Recording } from '../types/meeting';
 import { transcribeAudio } from '../api/transcribe-audio';
 import { getOpenAIChatResponse } from '../api/chat-service';
+import { VoiceWaves } from './VoiceWaves';
+import { RecordingIndicator } from './RecordingIndicator';
+import { CircularWaves } from './CircularWaves';
+import { ProcessingPulse } from './ProcessingPulse';
 import { cn } from '../utils/cn';
 
 interface RecordingButtonProps {
@@ -138,21 +142,45 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
 
   return (
     <View className="items-center">
-      <Pressable
-        onPress={handlePress}
-        disabled={isProcessing}
-        className={cn(
-          "w-20 h-20 rounded-full items-center justify-center",
-          isRecording ? "bg-red-500" : "bg-emerald-500",
-          isProcessing && "opacity-50"
-        )}
-      >
-        <Ionicons
-          name={isRecording ? "stop" : "mic"}
-          size={32}
-          color="white"
+      <View className="relative items-center justify-center">
+        {/* Circular waves animation */}
+        <CircularWaves isRecording={isRecording} size={120} color="#EF4444" />
+        
+        {/* Pulsing background indicator */}
+        <RecordingIndicator isRecording={isRecording} size={100} />
+        
+        {/* Main recording button */}
+        <Pressable
+          onPress={handlePress}
+          disabled={isProcessing}
+          className={cn(
+            "w-20 h-20 rounded-full items-center justify-center z-10",
+            isRecording ? "bg-red-500" : "bg-emerald-500",
+            isProcessing && "opacity-50"
+          )}
+          style={{
+            shadowColor: isRecording ? '#EF4444' : '#10B981',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.3,
+            shadowRadius: 8,
+          }}
+        >
+          <Ionicons
+            name={isRecording ? "stop" : "mic"}
+            size={32}
+            color="white"
+          />
+        </Pressable>
+      </View>
+      
+      {/* Voice waves animation */}
+      <View className="mt-6 h-8 items-center justify-center">
+        <VoiceWaves 
+          isRecording={isRecording} 
+          size="medium" 
+          color="#EF4444" 
         />
-      </Pressable>
+      </View>
       
       {isRecording && (
         <View className="mt-4 items-center">
@@ -166,9 +194,12 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
       )}
       
       {isProcessing && (
-        <Text className="mt-4 text-emerald-500 font-medium">
-          Processing...
-        </Text>
+        <View className="mt-4 flex-row items-center">
+          <ProcessingPulse isProcessing={isProcessing} />
+          <Text className="text-emerald-500 font-medium">
+            Processing...
+          </Text>
+        </View>
       )}
     </View>
   );
