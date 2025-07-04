@@ -1,0 +1,19 @@
+Sample Document for Testing
+
+This is a test document to verify that our document processing system works correctly. The document contains multiple paragraphs and different types of content.
+
+Key Points:
+1. The system should extract all text from this document
+2. The AI should be able to answer questions about this content
+3. Users should be able to chat about the document topics
+
+Main Topics Covered:
+- Document processing and text extraction
+- AI chat functionality with document context
+- User interface for file upload and chat
+
+Technical Implementation:
+The system uses React Native with Expo for file handling. It processes documents through a custom text extraction utility and stores the content in memory for AI chat sessions.
+
+Conclusion:
+This test document should provide enough content for testing the complete document chat workflow from upload to AI interaction.
