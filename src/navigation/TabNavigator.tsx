@@ -1,10 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { OverviewScreen } from '../screens/OverviewScreen';
 import { RecordingsScreen } from '../screens/RecordingsScreen';
 import { DocumentsScreen } from '../screens/DocumentsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +26,15 @@ export const TabNavigator: React.FC = () => {
         },
       }}
     >
+      <Tab.Screen
+        name="Overview"
+        component={OverviewScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Recordings"
         component={RecordingsScreen}
@@ -50,15 +59,6 @@ export const TabNavigator: React.FC = () => {
         options={{
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
           ),
         }}
       />

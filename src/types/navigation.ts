@@ -9,10 +9,10 @@ export type RootStackParamList = {
 };
 
 export type TabParamList = {
+  Overview: undefined;
   Recordings: undefined;
   Documents: undefined;
   'AI Chat': undefined;
-  Profile: undefined;
 };
 
 declare global {
