@@ -111,7 +111,10 @@ export const OverviewScreen: React.FC = () => {
           <Text className="text-xl font-bold text-gray-900 mb-4">Today's Activity</Text>
           
           <View className="flex-row justify-between mb-6">
-            <View className="flex-1 bg-emerald-50 rounded-2xl p-4 mr-2">
+            <Pressable 
+              onPress={() => navigation.navigate('Recordings')}
+              className="flex-1 bg-emerald-50 rounded-2xl p-4 mr-2 active:bg-emerald-100"
+            >
               <View className="flex-row items-center justify-between mb-2">
                 <Ionicons name="mic" size={24} color="#10B981" />
                 <Text className="text-emerald-600 font-bold text-2xl">
@@ -122,9 +125,12 @@ export const OverviewScreen: React.FC = () => {
               <Text className="text-gray-500 text-sm">
                 {limits.dailyRecordings === -1 ? 'Unlimited' : `${todayUsage.recordingsCount}/${limits.dailyRecordings} today`}
               </Text>
-            </View>
+            </Pressable>
             
-            <View className="flex-1 bg-blue-50 rounded-2xl p-4 ml-2">
+            <Pressable 
+              onPress={() => navigation.navigate('Documents')}
+              className="flex-1 bg-blue-50 rounded-2xl p-4 ml-2 active:bg-blue-100"
+            >
               <View className="flex-row items-center justify-between mb-2">
                 <Ionicons name="document-text" size={24} color="#3B82F6" />
                 <Text className="text-blue-600 font-bold text-2xl">
@@ -135,7 +141,7 @@ export const OverviewScreen: React.FC = () => {
               <Text className="text-gray-500 text-sm">
                 {limits.maxDocuments === -1 ? 'Unlimited' : `${documents.length}/${limits.maxDocuments} total`}
               </Text>
-            </View>
+            </Pressable>
           </View>
 
           {/* Upgrade prompt for free users */}
@@ -169,7 +175,11 @@ export const OverviewScreen: React.FC = () => {
             
             <View className="space-y-3">
               {recentRecordings.map((recording) => (
-                <View key={recording.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+                <Pressable 
+                  key={recording.id} 
+                  onPress={() => navigation.navigate('RecordingDetail', { recordingId: recording.id })}
+                  className="bg-white border border-gray-200 rounded-2xl p-4 active:bg-gray-50"
+                >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1">
                       <Text className="font-semibold text-gray-900 mb-1">
@@ -189,7 +199,10 @@ export const OverviewScreen: React.FC = () => {
                       <Ionicons name="mic" size={18} color="#10B981" />
                     </View>
                   </View>
-                </View>
+                  <View className="absolute top-4 right-4">
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </View>
+                </Pressable>
               ))}
             </View>
           </View>
@@ -207,7 +220,11 @@ export const OverviewScreen: React.FC = () => {
             
             <View className="space-y-3">
               {recentDocuments.map((document) => (
-                <View key={document.id} className="bg-white border border-gray-200 rounded-2xl p-4">
+                <Pressable 
+                  key={document.id} 
+                  onPress={() => navigation.navigate('DocumentDetail', { documentId: document.id })}
+                  className="bg-white border border-gray-200 rounded-2xl p-4 active:bg-gray-50"
+                >
                   <View className="flex-row items-start justify-between">
                     <View className="flex-1">
                       <Text className="font-semibold text-gray-900 mb-1">
@@ -227,7 +244,10 @@ export const OverviewScreen: React.FC = () => {
                       <Ionicons name="document-text" size={18} color="#3B82F6" />
                     </View>
                   </View>
-                </View>
+                  <View className="absolute top-4 right-4">
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                  </View>
+                </Pressable>
               ))}
             </View>
           </View>
@@ -241,41 +261,53 @@ export const OverviewScreen: React.FC = () => {
             </Text>
             
             <View className="space-y-4">
-              <View className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200">
+              <Pressable 
+                onPress={() => navigation.navigate('Recordings')}
+                className="bg-emerald-50 rounded-2xl p-4 border border-emerald-200 active:bg-emerald-100"
+              >
                 <View className="flex-row items-center mb-2">
                   <View className="w-8 h-8 bg-emerald-500 rounded-full items-center justify-center mr-3">
                     <Text className="text-white font-bold">1</Text>
                   </View>
-                  <Text className="font-semibold text-emerald-900">Record Your First Meeting</Text>
+                  <Text className="font-semibold text-emerald-900 flex-1">Record Your First Meeting</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#059669" />
                 </View>
                 <Text className="text-emerald-800 text-sm leading-relaxed ml-11">
                   Tap the record button above to start capturing your meetings or classes with automatic transcription.
                 </Text>
-              </View>
+              </Pressable>
               
-              <View className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+              <Pressable 
+                onPress={() => navigation.navigate('Documents')}
+                className="bg-blue-50 rounded-2xl p-4 border border-blue-200 active:bg-blue-100"
+              >
                 <View className="flex-row items-center mb-2">
                   <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center mr-3">
                     <Text className="text-white font-bold">2</Text>
                   </View>
-                  <Text className="font-semibold text-blue-900">Upload Documents</Text>
+                  <Text className="font-semibold text-blue-900 flex-1">Upload Documents</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#2563EB" />
                 </View>
                 <Text className="text-blue-800 text-sm leading-relaxed ml-11">
                   Visit the Documents tab to upload and analyze your text files and PDFs.
                 </Text>
-              </View>
+              </Pressable>
               
-              <View className="bg-purple-50 rounded-2xl p-4 border border-purple-200">
+              <Pressable 
+                onPress={() => navigation.navigate('AI Chat')}
+                className="bg-purple-50 rounded-2xl p-4 border border-purple-200 active:bg-purple-100"
+              >
                 <View className="flex-row items-center mb-2">
                   <View className="w-8 h-8 bg-purple-500 rounded-full items-center justify-center mr-3">
                     <Text className="text-white font-bold">3</Text>
                   </View>
-                  <Text className="font-semibold text-purple-900">Chat with AI</Text>
+                  <Text className="font-semibold text-purple-900 flex-1">Chat with AI</Text>
+                  <Ionicons name="chevron-forward" size={16} color="#7C3AED" />
                 </View>
                 <Text className="text-purple-800 text-sm leading-relaxed ml-11">
                   Use the AI Chat tab to ask questions about your recordings and documents.
                 </Text>
-              </View>
+              </Pressable>
             </View>
           </View>
         )}
