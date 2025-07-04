@@ -17,6 +17,7 @@ export const OverviewScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
   const { plan, limits, getTodayUsage } = useSubscriptionStore();
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const todayUsage = getTodayUsage();
