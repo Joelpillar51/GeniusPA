@@ -9,6 +9,7 @@ import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
+import { TruncatedText } from '../components/TruncatedText';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 import { processDocumentFromUrl, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
@@ -333,18 +334,15 @@ export const DocumentsScreen: React.FC = () => {
                   
                   {document.transcript && (
                     <View className="mt-3 pt-3 border-t border-gray-200">
-                      <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-gray-600 text-xs font-medium uppercase tracking-wide">
-                          Content
-                        </Text>
-                      </View>
-                      <EditableText
+                      <TruncatedText
                         text={document.transcript}
+                        wordLimit={10}
                         onSave={(newTranscript) => updateDocument(document.id, { transcript: newTranscript })}
                         multiline
                         placeholder="Document content"
                         textStyle="text-gray-800 text-sm leading-relaxed"
                         showEditIcon={true}
+                        label="Content"
                       />
                       {document.transcript.includes('📄') && (
                         <Text className="text-emerald-600 text-xs mt-2 font-medium">

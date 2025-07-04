@@ -11,6 +11,7 @@ import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
 import { ExportOptions } from '../components/ExportOptions';
 import { VoiceWaves } from '../components/VoiceWaves';
+import { TruncatedText } from '../components/TruncatedText';
 import { Recording } from '../types/meeting';
 import { cn } from '../utils/cn';
 
@@ -218,18 +219,15 @@ export const RecordingsScreen: React.FC = () => {
                   
                   {recording.transcript && (
                     <View className="mt-3 pt-3 border-t border-gray-200">
-                      <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-gray-600 text-xs font-medium uppercase tracking-wide">
-                          Transcript
-                        </Text>
-                      </View>
-                      <EditableText
+                      <TruncatedText
                         text={recording.transcript}
+                        wordLimit={10}
                         onSave={(newTranscript) => updateRecording(recording.id, { transcript: newTranscript })}
                         multiline
                         placeholder="No transcript available"
                         textStyle="text-gray-800 text-sm leading-relaxed"
                         showEditIcon={true}
+                        label="Transcript"
                       />
                     </View>
                   )}
