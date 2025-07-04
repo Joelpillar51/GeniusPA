@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { TypingIndicator } from './TypingIndicator';
+import { View, Text } from 'react-native';
 import { CircularDotSpinner } from './CircularDotSpinner';
 
 interface AILoadingIndicatorProps {
@@ -91,52 +89,22 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
   const stageInfo = getStageInfo();
 
   return (
-    <View className="self-start bg-white border-2 p-4 rounded-2xl rounded-bl-md shadow-sm max-w-[85%]" style={{ borderColor: `${stageInfo.color}30` }}>
+    <View className="self-start bg-white border p-4 rounded-2xl rounded-bl-md max-w-[85%]" style={{ borderColor: `${stageInfo.color}30` }}>
       <View className="flex-row items-center">
-        <View className="mr-3">
-          <View 
-            className="w-10 h-10 rounded-full items-center justify-center"
-            style={{ backgroundColor: `${stageInfo.color}20` }}
-          >
-            <CircularDotSpinner 
-              size={24} 
-              color={stageInfo.color}
-              dotCount={10}
-            />
-          </View>
-        </View>
+        <CircularDotSpinner 
+          size={24} 
+          color={stageInfo.color}
+          dotCount={8}
+        />
         
-        <View className="flex-1">
-          <Text className="text-gray-900 font-semibold text-base">
+        <View className="flex-1 ml-3">
+          <Text className="text-gray-900 font-medium text-base">
             {message || `${stageInfo.text}${dots}`}
           </Text>
           
-          <View className="mt-3">
-            <View className="flex-row items-center mb-3">
-              <View className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
-                <View 
-                  className="h-full rounded-full"
-                  style={{ 
-                    backgroundColor: stageInfo.color,
-                    width: `${Math.min(Math.max(currentProgress, 5), 100)}%`
-                  }}
-                />
-              </View>
-            </View>
-            <View className="flex-row items-center justify-between">
-              <TypingIndicator isVisible={true} color={stageInfo.color} />
-              <View className="flex-row items-center">
-                <Text className="text-sm font-bold mr-3" style={{ color: stageInfo.color }}>
-                  {Math.round(Math.max(currentProgress, 5))}%
-                </Text>
-                <CircularDotSpinner 
-                  size={20} 
-                  color={stageInfo.color}
-                  dotCount={8}
-                />
-              </View>
-            </View>
-          </View>
+          <Text className="text-sm font-bold mt-1" style={{ color: stageInfo.color }}>
+            {Math.round(Math.max(currentProgress, 5))}%
+          </Text>
         </View>
       </View>
       
