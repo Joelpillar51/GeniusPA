@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UpgradePromptContext } from '../types/subscription';
+import { SubscriptionModal } from './SubscriptionModal';
 
 interface UpgradeModalProps {
   visible: boolean;
@@ -16,12 +16,11 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onClose,
   context,
 }) => {
-  const navigation = useNavigation();
   const { plan, upgradePlan, recordUpgradePrompt } = useSubscriptionStore();
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleUpgrade = () => {
-    onClose();
-    navigation.navigate('Subscription' as never);
+    setShowSubscriptionModal(true);
   };
 
   const proFeatures = [
@@ -140,6 +139,15 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           </ScrollView>
         </View>
       </View>
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => {
+          setShowSubscriptionModal(false);
+          onClose();
+        }}
+      />
     </Modal>
   );
 };

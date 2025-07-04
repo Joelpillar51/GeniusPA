@@ -64,7 +64,7 @@ export const OverviewScreen: React.FC = () => {
           
           {/* Profile Avatar */}
           <Pressable
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => setShowProfileModal(true)}
             className="w-12 h-12 bg-emerald-100 rounded-full items-center justify-center border-2 border-emerald-50"
           >
             <Text className="text-emerald-700 font-bold text-lg">

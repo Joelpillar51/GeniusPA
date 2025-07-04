@@ -7,7 +7,6 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { TabNavigator } from './TabNavigator';
 import { RecordingDetailScreen } from '../screens/RecordingDetailScreen';
 import { DocumentDetailScreen } from '../screens/DocumentDetailScreen';
-import { SubscriptionScreen } from '../screens/SubscriptionScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,14 +56,6 @@ export const AppNavigator: React.FC = () => {
       <Stack.Screen 
         name="DocumentDetail" 
         component={DocumentDetailScreen}
-        options={{
-          presentation: 'modal',
-          headerShown: false,
-        }}
-      />
-      <Stack.Screen 
-        name="Subscription" 
-        component={SubscriptionScreen}
         options={{
           presentation: 'modal',
           headerShown: false,
