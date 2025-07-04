@@ -3,9 +3,11 @@ import { View, Text, Pressable, Alert } from 'react-native';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { Recording } from '../types/meeting';
 import { transcribeAudio } from '../api/transcribe-audio';
 import { getOpenAIChatResponse } from '../api/chat-service';
+import { UpgradeModal } from './UpgradeModal';
 import { VoiceWaves } from './VoiceWaves';
 import { RecordingIndicator } from './RecordingIndicator';
 import { CircularWaves } from './CircularWaves';
@@ -20,12 +22,24 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const recording = useRef<Audio.Recording | null>(null);
   const durationInterval = useRef<NodeJS.Timeout | null>(null);
   
   const { addRecording, updateRecording } = useMeetingStore();
+  const { canRecord, addRecordingUsage, limits } = useSubscriptionStore();
 
   const startRecording = async () => {
+    // Check subscription limits
+    const recordingCheck = canRecord();
+    if (!recordingCheck.allowed) {
+      Alert.alert('Recording Limit Reached', recordingCheck.reason!, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+      ]);
+      return;
+    }
+
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -48,7 +62,24 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
 
       // Start duration timer
       durationInterval.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
+        setRecordingDuration(prev => {
+          const newDuration = prev + 1;
+          
+          // Check if we've hit the duration limit
+          if (limits.maxRecordingDuration !== -1 && newDuration >= limits.maxRecordingDuration) {
+            stopRecording();
+            Alert.alert(
+              'Recording Limit Reached',
+              `Free users can record up to ${Math.floor(limits.maxRecordingDuration / 60)} minutes. Upgrade to Pro for longer recordings.`,
+              [
+                { text: 'OK' },
+                { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+              ]
+            );
+          }
+          
+          return newDuration;
+        });
       }, 1000);
 
     } catch (err) {
@@ -86,6 +117,12 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
         createdAt: now,
         isTranscribing: true,
       };
+
+      // Track usage
+      const usageAdded = addRecordingUsage(recordingDuration);
+      if (!usageAdded) {
+        console.warn('Failed to track recording usage');
+      }
 
       // Add to store
       addRecording(newRecording);
@@ -201,6 +238,28 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
           </Text>
         </View>
       )}
+      
+      {/* Recording Limit Info */}
+      {limits.maxRecordingDuration !== -1 && !isRecording && !isProcessing && (
+        <Text className="mt-4 text-gray-500 text-sm text-center">
+          {Math.floor(limits.maxRecordingDuration / 60)} min limit • Free Plan
+        </Text>
+      )}
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        context={{
+          feature: 'Recording',
+          limitation: 'Free users can only record for 5 minutes and 3 times per day.',
+          benefits: [
+            'Record up to 1 hour with Pro plan',
+            'Up to 50 recordings per day',
+            'Unlimited recordings with Premium',
+          ],
+        }}
+      />
     </View>
   );
 };

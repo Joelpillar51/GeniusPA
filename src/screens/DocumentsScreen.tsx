@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -6,20 +6,34 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useMeetingStore } from '../state/meetingStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
+import { UpgradeModal } from '../components/UpgradeModal';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 
 export const DocumentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { documents, addDocument, updateDocument, deleteDocument } = useMeetingStore();
+  const { canAddDocument, addDocumentUsage, removeDocumentUsage } = useSubscriptionStore();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const sortedDocuments = documents.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
   const pickDocument = async () => {
+    // Check subscription limits
+    const documentCheck = canAddDocument();
+    if (!documentCheck.allowed) {
+      Alert.alert('Document Limit Reached', documentCheck.reason!, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+      ]);
+      return;
+    }
+
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['text/*', 'application/pdf'],
@@ -45,6 +59,12 @@ export const DocumentsScreen: React.FC = () => {
       createdAt: new Date(),
       isProcessing: true,
     };
+
+    // Track usage
+    const usageAdded = addDocumentUsage();
+    if (!usageAdded) {
+      console.warn('Failed to track document usage');
+    }
 
     addDocument(newDocument);
 
@@ -88,7 +108,10 @@ export const DocumentsScreen: React.FC = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteDocument(document.id),
+          onPress: () => {
+            deleteDocument(document.id);
+            removeDocumentUsage();
+          },
         },
       ]
     );
@@ -236,6 +259,21 @@ export const DocumentsScreen: React.FC = () => {
             </View>
           )}
         </ScrollView>
+        
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          visible={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          context={{
+            feature: 'Documents',
+            limitation: 'Free users can only add 1 document total (even after deletion).',
+            benefits: [
+              'Upload up to 100 documents with Pro',
+              'Unlimited documents with Premium',
+              'Process large files faster',
+            ],
+          }}
+        />
       </View>
     </SafeAreaView>
   );

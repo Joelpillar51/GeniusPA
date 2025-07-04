@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { exportChatAsDocument, exportTranscriptAsDocument, exportDocumentAsDocument } from '../utils/documentExport';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ChatSession, Recording, Document } from '../types/meeting';
+import { UpgradeModal } from './UpgradeModal';
 import { cn } from '../utils/cn';
 
 interface ExportOptionsProps {
@@ -19,8 +21,20 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   type,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { canExport } = useSubscriptionStore();
 
   const handleExport = async (format: 'txt' | 'rtf' | 'md') => {
+    // Check export permissions
+    const exportCheck = canExport(format);
+    if (!exportCheck.allowed) {
+      Alert.alert('Upgrade Required', exportCheck.reason!, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+      ]);
+      return;
+    }
+
     setIsExporting(true);
     try {
       switch (type) {
@@ -63,6 +77,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
       description: 'Plain text format - universal compatibility',
       icon: 'document-text-outline' as const,
       color: '#6B7280',
+      available: canExport('txt').allowed,
     },
     {
       key: 'rtf' as const,
@@ -70,6 +85,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
       description: 'Opens in Word, Pages, and other text editors',
       icon: 'document-outline' as const,
       color: '#10B981',
+      available: canExport('rtf').allowed,
     },
     {
       key: 'md' as const,
@@ -77,6 +93,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
       description: 'Formatted text - great for documentation',
       icon: 'code-outline' as const,
       color: '#10B981',
+      available: canExport('md').allowed,
     },
   ];
 
@@ -110,30 +127,47 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
               <Pressable
                 key={option.key}
                 onPress={() => handleExport(option.key)}
-                disabled={isExporting}
+                disabled={isExporting || !option.available}
                 className={cn(
                   "flex-row items-center p-4 rounded-lg border border-gray-200 mb-3",
-                  isExporting ? "opacity-50" : "active:bg-gray-50"
+                  isExporting || !option.available ? "opacity-50" : "active:bg-gray-50"
                 )}
               >
                 <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: `${option.color}15` }}>
                   <Ionicons
                     name={option.icon}
                     size={24}
-                    color={option.color}
+                    color={option.available ? option.color : '#9CA3AF'}
                   />
                 </View>
                 
                 <View className="flex-1">
-                  <Text className="font-semibold text-gray-900 mb-1">
-                    {option.title}
-                  </Text>
-                  <Text className="text-gray-600 text-sm">
-                    {option.description}
+                  <View className="flex-row items-center">
+                    <Text className={cn(
+                      "font-semibold mb-1",
+                      option.available ? "text-gray-900" : "text-gray-500"
+                    )}>
+                      {option.title}
+                    </Text>
+                    {!option.available && (
+                      <View className="ml-2 bg-orange-100 px-2 py-1 rounded">
+                        <Text className="text-orange-700 text-xs font-medium">PRO</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text className={cn(
+                    "text-sm",
+                    option.available ? "text-gray-600" : "text-gray-500"
+                  )}>
+                    {option.available ? option.description : 'Upgrade to Pro to access this format'}
                   </Text>
                 </View>
                 
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                <Ionicons 
+                  name={option.available ? "chevron-forward" : "lock-closed"} 
+                  size={20} 
+                  color="#9CA3AF" 
+                />
               </Pressable>
             ))}
           </View>
@@ -165,6 +199,21 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
           )}
         </View>
       </View>
+      
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        context={{
+          feature: 'Export Formats',
+          limitation: 'Free users can only export to text format.',
+          benefits: [
+            'Export to RTF for Microsoft Word',
+            'Export to Markdown for documentation',
+            'All formats with Pro subscription',
+          ],
+        }}
+      />
     </Modal>
   );
 };

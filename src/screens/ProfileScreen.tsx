@@ -4,13 +4,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UserPreferences } from '../types/auth';
+import { UpgradeModal } from '../components/UpgradeModal';
 
 export const ProfileScreen: React.FC = () => {
   const { user, signOut, updateUser, updatePreferences } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
+  const { plan, limits, getTodayUsage } = useSubscriptionStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(user?.name || '');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   if (!user) {
     console.log('ProfileScreen: No user found, redirecting...');
@@ -111,39 +115,78 @@ export const ProfileScreen: React.FC = () => {
               Member since {new Date(user.createdAt).toLocaleDateString()}
             </Text>
             
-            {/* GeniusPA Badge */}
-            <View className="mt-4 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-200">
-              <Text className="text-emerald-700 font-semibold text-sm">GeniusPA Member</Text>
-            </View>
+            {/* Subscription Badge */}
+            <Pressable 
+              onPress={() => plan === 'free' && setShowUpgradeModal(true)}
+              className={cn(
+                "mt-4 px-4 py-2 rounded-full border",
+                plan === 'free' 
+                  ? "bg-gray-50 border-gray-200" 
+                  : plan === 'pro'
+                  ? "bg-emerald-50 border-emerald-200"
+                  : "bg-purple-50 border-purple-200"
+              )}
+            >
+              <Text className={cn(
+                "font-semibold text-sm capitalize",
+                plan === 'free' 
+                  ? "text-gray-700" 
+                  : plan === 'pro'
+                  ? "text-emerald-700"
+                  : "text-purple-700"
+              )}>
+                {plan === 'free' ? 'Free Plan • Tap to Upgrade' : `${plan} Plan`}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
-        {/* Quick Stats */}
+        {/* Usage Stats */}
         <View className="px-8 py-6 mx-8 mb-6 bg-gray-50 rounded-2xl">
-          <Text className="text-lg font-bold text-gray-900 mb-4 text-center">Your Activity</Text>
-          <View className="flex-row justify-around">
-            <Pressable onPress={showDataInfo} className="items-center">
+          <Text className="text-lg font-bold text-gray-900 mb-4 text-center">Today's Usage</Text>
+          <View className="flex-row justify-around mb-4">
+            <View className="items-center">
               <View className="w-16 h-16 bg-emerald-100 rounded-2xl items-center justify-center mb-2">
                 <Ionicons name="mic" size={24} color="#10B981" />
               </View>
-              <Text className="text-2xl font-bold text-emerald-600 mb-1">{recordings.length}</Text>
-              <Text className="text-gray-600 text-sm font-medium">Recordings</Text>
-            </Pressable>
-            <Pressable onPress={showDataInfo} className="items-center">
+              <Text className="text-2xl font-bold text-emerald-600 mb-1">
+                {getTodayUsage().recordingsCount}
+              </Text>
+              <Text className="text-gray-600 text-xs font-medium">
+                {limits.dailyRecordings === -1 ? 'Unlimited' : `${getTodayUsage().recordingsCount}/${limits.dailyRecordings}`}
+              </Text>
+              <Text className="text-gray-600 text-xs">Recordings</Text>
+            </View>
+            <View className="items-center">
               <View className="w-16 h-16 bg-blue-100 rounded-2xl items-center justify-center mb-2">
                 <Ionicons name="document-text" size={24} color="#3B82F6" />
               </View>
               <Text className="text-2xl font-bold text-blue-600 mb-1">{documents.length}</Text>
-              <Text className="text-gray-600 text-sm font-medium">Documents</Text>
-            </Pressable>
-            <Pressable onPress={showDataInfo} className="items-center">
+              <Text className="text-gray-600 text-xs font-medium">
+                {limits.maxDocuments === -1 ? 'Unlimited' : `${documents.length}/${limits.maxDocuments}`}
+              </Text>
+              <Text className="text-gray-600 text-xs">Documents</Text>
+            </View>
+            <View className="items-center">
               <View className="w-16 h-16 bg-purple-100 rounded-2xl items-center justify-center mb-2">
                 <Ionicons name="chatbubbles" size={24} color="#8B5CF6" />
               </View>
               <Text className="text-2xl font-bold text-purple-600 mb-1">{chatSessions.length}</Text>
-              <Text className="text-gray-600 text-sm font-medium">Chats</Text>
-            </Pressable>
+              <Text className="text-gray-600 text-xs font-medium">
+                {limits.aiChatProjects === -1 ? 'Unlimited' : `Max ${limits.aiChatProjects}`}
+              </Text>
+              <Text className="text-gray-600 text-xs">AI Chats</Text>
+            </View>
           </View>
+          
+          {plan === 'free' && (
+            <Pressable 
+              onPress={() => setShowUpgradeModal(true)}
+              className="bg-emerald-500 rounded-xl py-3 items-center"
+            >
+              <Text className="text-white font-semibold">Upgrade for More</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Preferences */}
@@ -296,6 +339,22 @@ export const ProfileScreen: React.FC = () => {
               <Text className="text-red-600 font-semibold text-lg ml-2">Sign Out</Text>
             </View>
           </Pressable>
+          
+          {/* Upgrade Modal */}
+          <UpgradeModal
+            visible={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+            context={{
+              feature: 'Subscription',
+              limitation: 'You are currently on the free plan with limited features.',
+              benefits: [
+                'Longer recording limits',
+                'More daily recordings',
+                'Multiple documents and AI chats',
+                'All export formats',
+              ],
+            }}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

@@ -5,17 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
 import { ChatSession, ChatMessage, Recording, Document } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
+import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ExportOptions } from '../components/ExportOptions';
+import { UpgradeModal } from '../components/UpgradeModal';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const { recordings, documents, chatSessions, createChatSession, addMessageToSession } = useMeetingStore();
+  const { canUseAIChat, setChatProject } = useSubscriptionStore();
   const [inputText, setInputText] = useState('');
   const [selectedItem, setSelectedItem] = useState<{id: string, type: 'recording' | 'document', title: string} | null>(null);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const allItems = [
@@ -60,6 +64,24 @@ export const ChatScreen: React.FC = () => {
   const sendMessage = async () => {
     if (!inputText.trim() || !selectedItem || !currentSession) return;
 
+    // Check if the question is about the current project's content
+    const isOffTopicQuestion = checkIfOffTopic(inputText.trim());
+    if (isOffTopicQuestion) {
+      const assistantMessage: ChatMessage = {
+        id: `msg_${Date.now()}_upgrade`,
+        role: 'assistant',
+        content: "Please upgrade your plan to proceed. Free users can only ask questions about their selected recording or document content.",
+        timestamp: new Date(),
+        relatedItemId: selectedItem.id,
+      };
+      addMessageToSession(currentSession.id, assistantMessage);
+      
+      setTimeout(() => {
+        setShowUpgradeModal(true);
+      }, 1000);
+      return;
+    }
+
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'user',
@@ -87,7 +109,7 @@ ${content}
 
 Now please answer the following question about this content: ${inputText.trim()}
 
-Please provide a helpful and accurate response based only on the content provided.`;
+Please provide a helpful and accurate response based only on the content provided. If the question is not related to the provided content, politely redirect the user to ask questions about the specific content.`;
 
       const response = await getOpenAIChatResponse(contextPrompt);
 
@@ -106,6 +128,26 @@ Please provide a helpful and accurate response based only on the content provide
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Simple check for off-topic questions
+  const checkIfOffTopic = (question: string): boolean => {
+    const offTopicKeywords = [
+      'weather', 'news', 'joke', 'recipe', 'movie', 'game', 'sport',
+      'travel', 'restaurant', 'shopping', 'code', 'programming',
+      'math problem', 'homework', 'translate', 'write a', 'create a',
+      'generate', 'help me with', 'what is', 'how to', 'explain',
+    ];
+    
+    const lowerQuestion = question.toLowerCase();
+    return offTopicKeywords.some(keyword => 
+      lowerQuestion.includes(keyword) && 
+      !lowerQuestion.includes('document') && 
+      !lowerQuestion.includes('recording') &&
+      !lowerQuestion.includes('transcript') &&
+      !lowerQuestion.includes('meeting') &&
+      !lowerQuestion.includes('content')
+    );
   };
 
   const generateQuestions = async () => {
@@ -181,7 +223,18 @@ Please format as a numbered list with clear, specific questions.`;
                 allItems.map((item) => (
                   <Pressable
                     key={`${item.type}_${item.id}`}
-                    onPress={() => setSelectedItem(item)}
+                    onPress={() => {
+                      const chatCheck = canUseAIChat(item.id);
+                      if (!chatCheck.allowed) {
+                        Alert.alert('Upgrade Required', chatCheck.reason!, [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+                        ]);
+                        return;
+                      }
+                      setChatProject(item.id, item.type);
+                      setSelectedItem(item);
+                    }}
                     className="mb-3 p-4 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     <View className="flex-row items-center">
@@ -320,6 +373,21 @@ Please format as a numbered list with clear, specific questions.`;
             type="chat"
           />
         )}
+        
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          visible={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          context={{
+            feature: 'AI Chat',
+            limitation: 'Free users can only chat about one project and must ask questions related to that content.',
+            benefits: [
+              'Chat about 10 projects with Pro',
+              'Unlimited AI conversations with Premium',
+              'Ask general questions beyond your content',
+            ],
+          }}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
