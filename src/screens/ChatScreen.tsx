@@ -473,11 +473,13 @@ Please format as a numbered list with clear, specific questions.`;
         className="flex-1" 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View className="px-6 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">AI Chat</Text>
-          <Text className="text-gray-600 mt-1">Ask questions about your content</Text>
-        </View>
+        {/* Header - only show when not in chat */}
+        {!selectedItem && !directChatMode && (
+          <View className="px-6 py-4 border-b border-gray-200">
+            <Text className="text-2xl font-bold text-gray-900">AI Chat</Text>
+            <Text className="text-gray-600 mt-1">Ask questions about your content</Text>
+          </View>
+        )}
 
         {!selectedItem && !directChatMode ? (
           /* Item Selection */
@@ -576,28 +578,15 @@ Please format as a numbered list with clear, specific questions.`;
                   <Ionicons name="arrow-back" size={24} color="#6B7280" />
                 </Pressable>
                 
-                {directChatMode ? (
-                  <>
-                    <View className="w-8 h-8 bg-blue-500 rounded-full items-center justify-center mr-3">
-                      <Ionicons name="chatbubbles" size={16} color="white" />
-                    </View>
-                    <Text className="font-medium text-gray-900 flex-1">AI Chat</Text>
-                  </>
-                ) : selectedItem ? (
-                  <>
-                    <Ionicons
-                      name={selectedItem.type === 'recording' ? 'mic' : 'link'}
-                      size={20}
-                      color="#6B7280"
-                    />
-                    <Text className="ml-2 font-medium text-gray-900 flex-1" numberOfLines={1}>
-                      {selectedItem.title}
-                    </Text>
-                    <Pressable onPress={generateQuestions} disabled={isLoading} className="p-2">
-                      <Ionicons name="help-circle-outline" size={24} color="#10B981" />
-                    </Pressable>
-                  </>
-                ) : null}
+                <Text className="font-medium text-gray-900 flex-1">
+                  {directChatMode ? 'AI Chat' : selectedItem?.title || 'Chat'}
+                </Text>
+                
+                {selectedItem && (
+                  <Pressable onPress={generateQuestions} disabled={isLoading} className="p-2">
+                    <Ionicons name="help-circle-outline" size={24} color="#10B981" />
+                  </Pressable>
+                )}
                 
                 {currentSession && currentSession.messages.length > 0 && (
                   <Pressable onPress={exportChat} className="p-2">
