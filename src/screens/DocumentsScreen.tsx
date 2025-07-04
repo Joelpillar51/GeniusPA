@@ -138,26 +138,21 @@ export const DocumentsScreen: React.FC = () => {
           <Text className="text-gray-600 mt-1">{documents.length} documents from URLs</Text>
         </View>
 
-        {/* URL Input Section */}
-        <View className="py-8 px-6 border-b border-gray-200">
-          <View className="items-center mb-6">
-            <View className="w-20 h-20 bg-blue-100 rounded-full items-center justify-center mb-4">
-              <Ionicons name="link" size={32} color="#3B82F6" />
+        {/* Static URL Input Section */}
+        <View className="px-6 py-3 border-b border-gray-200 bg-white">
+          <View className="flex-row items-center mb-2">
+            <View className="w-6 h-6 bg-blue-100 rounded-full items-center justify-center mr-2">
+              <Ionicons name="link" size={14} color="#3B82F6" />
             </View>
-            <Text className="text-xl font-bold text-gray-900 mb-2 text-center">
-              Add Document from URL
-            </Text>
-            <Text className="text-gray-600 text-center">
-              Paste a URL to extract content and analyze with AI
-            </Text>
+            <Text className="text-base font-semibold text-gray-900">Add from URL</Text>
           </View>
           
-          <View className="flex-row items-center mb-4">
+          <View className="flex-row items-center">
             <TextInput
               value={urlInput}
               onChangeText={setUrlInput}
-              placeholder="https://example.com/article or document"
-              className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base mr-3"
+              placeholder="Paste article or document URL here"
+              className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm mr-2"
               keyboardType="url"
               autoCapitalize="none"
               autoCorrect={false}
@@ -166,60 +161,67 @@ export const DocumentsScreen: React.FC = () => {
             <Pressable
               onPress={processUrl}
               disabled={!urlInput.trim() || isProcessingUrl}
-              className={`px-6 py-3 rounded-xl ${
+              className={`px-4 py-2 rounded-lg ${
                 urlInput.trim() && !isProcessingUrl ? 'bg-blue-500' : 'bg-gray-300'
               }`}
             >
               {isProcessingUrl ? (
-                <Text className="text-white font-medium">...</Text>
+                <Text className="text-white font-medium text-sm">...</Text>
               ) : (
-                <Text className="text-white font-medium">Add</Text>
+                <Text className="text-white font-medium text-sm">Add</Text>
               )}
             </Pressable>
           </View>
-          
-          {/* Supported URL Types */}
-          <View className="bg-blue-50 rounded-xl p-4 mb-4">
-            <Text className="text-blue-900 font-semibold mb-2">✅ Works Great With:</Text>
-            <Text className="text-blue-800 text-sm">• Web articles and blog posts</Text>
-            <Text className="text-blue-800 text-sm">• Documentation pages</Text>
-            <Text className="text-blue-800 text-sm">• Wikipedia articles</Text>
-            <Text className="text-blue-800 text-sm">• GitHub README files</Text>
-            <Text className="text-blue-800 text-sm">• Online text content</Text>
-          </View>
-
-          {/* Example URLs */}
-          <View>
-            <Text className="text-gray-700 font-medium mb-2">💡 Try these examples:</Text>
-            {[
-              'https://en.wikipedia.org/wiki/Artificial_intelligence',
-              'https://docs.expo.dev/guides/overview/',
-              'https://github.com/facebook/react-native/blob/main/README.md'
-            ].map((exampleUrl, index) => (
-              <Pressable
-                key={index}
-                onPress={() => setUrlInput(exampleUrl)}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-2"
-              >
-                <Text className="text-blue-600 text-sm">{exampleUrl}</Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
 
-        {/* Documents List */}
-        <ScrollView className="flex-1">
-          {sortedDocuments.length === 0 ? (
-            <View className="flex-1 items-center justify-center py-12">
-              <Ionicons name="link" size={64} color="#9CA3AF" />
-              <Text className="text-gray-500 text-lg mt-4">No documents yet</Text>
-              <Text className="text-gray-400 text-center mt-2 px-6">
-                Add your first document from a URL to see it here
-              </Text>
+        {/* Scrollable Content */}
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {/* Info Section */}
+          <View className="px-6 py-3">
+            {/* Supported URL Types */}
+            <View className="bg-blue-50 rounded-lg p-3 mb-3">
+              <Text className="text-blue-900 font-medium mb-1 text-sm">✅ Works Great With:</Text>
+              <Text className="text-blue-800 text-xs">• Web articles • Documentation • Wikipedia • GitHub</Text>
             </View>
-          ) : (
-            <View className="px-6 py-4">
-              {sortedDocuments.map((document) => (
+
+            {/* Example URLs */}
+            <View className="mb-4">
+              <Text className="text-gray-700 font-medium mb-2 text-sm">💡 Try these examples:</Text>
+              {[
+                'https://en.wikipedia.org/wiki/Artificial_intelligence',
+                'https://docs.expo.dev/guides/overview/',
+                'https://github.com/facebook/react-native/blob/main/README.md'
+              ].map((exampleUrl, index) => (
+                <Pressable
+                  key={index}
+                  onPress={() => setUrlInput(exampleUrl)}
+                  className="bg-gray-50 border border-gray-200 rounded-lg p-2 mb-1"
+                >
+                  <Text className="text-blue-600 text-xs">{exampleUrl}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+            {/* Documents Section */}
+            <View className="px-6">
+              {sortedDocuments.length > 0 && (
+                <View className="border-t border-gray-200 pt-3 mb-3">
+                  <Text className="text-base font-semibold text-gray-900">Your Documents ({sortedDocuments.length})</Text>
+                </View>
+              )}
+              
+              {sortedDocuments.length === 0 ? (
+                <View className="items-center py-8 border-t border-gray-200">
+                  <Ionicons name="link-outline" size={32} color="#9CA3AF" />
+                  <Text className="text-gray-500 text-sm mt-2">No documents yet</Text>
+                  <Text className="text-gray-400 text-center mt-1 text-xs">
+                    Add your first document from a URL above
+                  </Text>
+                </View>
+              ) : (
+                <View className="pb-4">
+                  {sortedDocuments.map((document) => (
                 <Pressable 
                   key={document.id} 
                   onPress={() => navigation.navigate('DocumentDetail', { documentId: document.id })}
@@ -329,8 +331,9 @@ export const DocumentsScreen: React.FC = () => {
                   )}
                 </Pressable>
               ))}
-            </View>
-          )}
+              </View>
+            )}
+          </View>
         </ScrollView>
         
         {/* Upgrade Modal */}
