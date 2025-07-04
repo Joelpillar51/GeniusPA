@@ -71,7 +71,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignInPress }) => 
               Create Account
             </Text>
             <Text className="text-gray-600 text-center text-lg leading-relaxed">
-              Join Meeting Assistant to start{'\n'}recording and analyzing meetings
+              Join GeniusPA to start{'\n'}recording and analyzing meetings
             </Text>
           </View>
 
@@ -180,7 +180,7 @@ export const SignUpScreen: React.FC<SignUpScreenProps> = ({ onSignInPress }) => 
               <View className="flex-row items-start">
                 <Ionicons name="shield-checkmark" size={20} color="#10B981" />
                 <Text className="text-emerald-800 text-sm ml-3 leading-relaxed">
-                  By creating an account, you agree to our Terms of Service and Privacy Policy. Your data is encrypted and stored securely.
+                  By creating an account, you agree to our Terms of Service and Privacy Policy. Your data is encrypted and stored securely with GeniusPA.
                 </Text>
               </View>
             </View>

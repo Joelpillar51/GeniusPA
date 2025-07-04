@@ -9,8 +9,8 @@ export const SettingsScreen: React.FC = () => {
 
   const showAbout = () => {
     Alert.alert(
-      'Meeting Assistant AI',
-      'Version 1.0\n\nA powerful AI-powered meeting assistant that helps you record, transcribe, and analyze your meetings and documents.\n\nFeatures:\n• Audio recording with automatic transcription\n• Document upload and processing\n• AI-powered Q&A about your content\n• Export conversations to HTML\n• Secure local storage',
+      'GeniusPA',
+      'Version 1.0\n\nYour intelligent personal assistant for meetings and documents. GeniusPA helps you record, transcribe, and analyze your meetings with advanced AI.\n\nFeatures:\n• Audio recording with automatic transcription\n• Document upload and processing\n• AI-powered Q&A about your content\n• Export conversations to multiple formats\n• Secure local storage with encryption',
       [{ text: 'OK' }]
     );
   };
