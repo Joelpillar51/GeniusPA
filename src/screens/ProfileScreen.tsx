@@ -8,7 +8,6 @@ import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UserPreferences } from '../types/auth';
 import { UpgradeModal } from '../components/UpgradeModal';
-import { SubscriptionModal } from '../components/SubscriptionModal';
 import { cn } from '../utils/cn';
 
 export const ProfileScreen: React.FC = () => {
@@ -19,7 +18,6 @@ export const ProfileScreen: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Update editName when user changes
   useEffect(() => {
@@ -142,7 +140,7 @@ export const ProfileScreen: React.FC = () => {
             
             {/* Subscription Badge */}
             <Pressable 
-              onPress={() => plan === 'free' && setShowSubscriptionModal(true)}
+              onPress={() => plan === 'free' && navigation.navigate('Subscription' as never)}
               className={cn(
                 "mt-4 px-4 py-2 rounded-full border",
                 plan === 'free' 
@@ -205,7 +203,7 @@ export const ProfileScreen: React.FC = () => {
             
             {plan === 'free' && (
               <Pressable 
-                onPress={() => setShowSubscriptionModal(true)}
+                onPress={() => navigation.navigate('Subscription' as never)}
                 className="bg-emerald-500 rounded-xl py-3 items-center"
               >
                 <Text className="text-white font-semibold">Upgrade for More</Text>
@@ -381,12 +379,6 @@ export const ProfileScreen: React.FC = () => {
             'All export formats',
           ],
         }}
-      />
-
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        visible={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
       />
     </SafeAreaView>
   );
