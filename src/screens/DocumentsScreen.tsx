@@ -113,7 +113,7 @@ export const DocumentsScreen: React.FC = () => {
         <View className="py-8 items-center border-b border-gray-200">
           <Pressable
             onPress={pickDocument}
-            className="w-20 h-20 rounded-full bg-green-500 items-center justify-center"
+            className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center"
           >
             <Ionicons name="add" size={32} color="white" />
           </Pressable>
@@ -168,14 +168,14 @@ export const DocumentsScreen: React.FC = () => {
                       </Text>
                       
                       {document.isProcessing && (
-                        <Text className="text-blue-500 text-sm mt-1">
+                        <Text className="text-emerald-500 text-sm mt-1">
                           Processing...
                         </Text>
                       )}
                       
                       {document.transcript && !document.isProcessing && !document.summary && 
                        document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
-                        <Text className="text-green-600 text-sm mt-1 font-medium">
+                        <Text className="text-emerald-600 text-sm mt-1 font-medium">
                           ✓ Ready to summarize
                         </Text>
                       )}

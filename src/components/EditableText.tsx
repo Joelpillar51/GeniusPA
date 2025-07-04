@@ -100,7 +100,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
               
               <Pressable
                 onPress={handleSave}
-                className="px-4 py-2 rounded-lg bg-blue-500 ml-3"
+                className="px-4 py-2 rounded-lg bg-emerald-500 ml-3"
               >
                 <Text className="text-white font-medium">Save</Text>
               </Pressable>

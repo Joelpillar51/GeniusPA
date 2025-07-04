@@ -69,7 +69,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
       title: 'Rich Text (.rtf)',
       description: 'Opens in Word, Pages, and other text editors',
       icon: 'document-outline' as const,
-      color: '#3B82F6',
+      color: '#10B981',
     },
     {
       key: 'md' as const,
@@ -139,14 +139,14 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
           </View>
 
           {/* Info */}
-          <View className="px-6 py-4 bg-blue-50 border-t border-blue-100">
+          <View className="px-6 py-4 bg-emerald-50 border-t border-emerald-100">
             <View className="flex-row items-start">
-              <Ionicons name="information-circle" size={20} color="#3B82F6" />
+              <Ionicons name="information-circle" size={20} color="#10B981" />
               <View className="ml-3 flex-1">
-                <Text className="text-blue-900 font-medium text-sm">
+                <Text className="text-emerald-900 font-medium text-sm">
                   About Export Formats
                 </Text>
-                <Text className="text-blue-800 text-xs mt-1 leading-relaxed">
+                <Text className="text-emerald-800 text-xs mt-1 leading-relaxed">
                   • RTF files can be opened in Microsoft Word, Apple Pages, and Google Docs
                   • Text files work with any text editor or note-taking app
                   • Markdown files are great for technical documentation and can be converted to PDF

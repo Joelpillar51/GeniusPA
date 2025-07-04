@@ -13,7 +13,7 @@ export const TabNavigator: React.FC = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#3B82F6',
+        tabBarActiveTintColor: '#10B981',
         tabBarInactiveTintColor: '#9CA3AF',
         tabBarStyle: {
           paddingTop: 8,

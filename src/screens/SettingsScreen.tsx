@@ -86,12 +86,12 @@ export const SettingsScreen: React.FC = () => {
             {/* Privacy Section */}
             <View className="mb-6">
               <Text className="text-lg font-semibold text-gray-900 mb-3">Privacy</Text>
-              <View className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <View className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
                 <View className="flex-row items-start">
-                  <Ionicons name="shield-checkmark" size={24} color="#3B82F6" />
+                  <Ionicons name="shield-checkmark" size={24} color="#10B981" />
                   <View className="ml-3 flex-1">
-                    <Text className="text-blue-900 font-medium mb-1">Your Privacy Matters</Text>
-                    <Text className="text-blue-800 text-sm leading-relaxed">
+                    <Text className="text-emerald-900 font-medium mb-1">Your Privacy Matters</Text>
+                    <Text className="text-emerald-800 text-sm leading-relaxed">
                       All recordings and documents are stored locally on your device. Only transcription and AI processing require internet connection to provide you with the best experience.
                     </Text>
                   </View>

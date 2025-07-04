@@ -18,7 +18,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
     >
       <View className="flex-1 bg-black/50 items-center justify-center">
         <View className="bg-white rounded-lg p-6 items-center min-w-[200px]">
-          <ActivityIndicator size="large" color="#3B82F6" />
+          <ActivityIndicator size="large" color="#10B981" />
           <Text className="text-gray-700 mt-4 text-center font-medium">
             {message}
           </Text>

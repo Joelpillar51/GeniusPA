@@ -144,13 +144,13 @@ export const RecordingsScreen: React.FC = () => {
                       </Text>
                       
                       {recording.isTranscribing && (
-                        <Text className="text-blue-500 text-sm mt-1">
+                        <Text className="text-emerald-500 text-sm mt-1">
                           Transcribing...
                         </Text>
                       )}
                       
                       {recording.transcript && !recording.isTranscribing && !recording.summary && (
-                        <Text className="text-green-600 text-sm mt-1 font-medium">
+                        <Text className="text-emerald-600 text-sm mt-1 font-medium">
                           ✓ Ready to summarize
                         </Text>
                       )}
@@ -182,7 +182,7 @@ export const RecordingsScreen: React.FC = () => {
                         <Ionicons
                           name={playingId === recording.id ? "pause" : "play"}
                           size={24}
-                          color="#3B82F6"
+                          color="#10B981"
                         />
                       </Pressable>
                       

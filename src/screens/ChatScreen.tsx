@@ -218,7 +218,7 @@ Please format as a numbered list with clear, specific questions.`;
                   {selectedItem.title}
                 </Text>
                 <Pressable onPress={generateQuestions} disabled={isLoading} className="p-2">
-                  <Ionicons name="help-circle-outline" size={24} color="#3B82F6" />
+                  <Ionicons name="help-circle-outline" size={24} color="#10B981" />
                 </Pressable>
                 {currentSession && currentSession.messages.length > 0 && (
                   <Pressable onPress={exportChat} className="p-2">
@@ -250,7 +250,7 @@ Please format as a numbered list with clear, specific questions.`;
                       className={cn(
                         "mb-4 p-3 rounded-lg max-w-[80%]",
                         message.role === 'user'
-                          ? "self-end bg-blue-500"
+                          ? "self-end bg-emerald-500"
                           : "self-start bg-gray-200"
                       )}
                     >
@@ -265,7 +265,7 @@ Please format as a numbered list with clear, specific questions.`;
                       <Text
                         className={cn(
                           "text-xs mt-1",
-                          message.role === 'user' ? "text-blue-100" : "text-gray-500"
+                          message.role === 'user' ? "text-emerald-100" : "text-gray-500"
                         )}
                       >
                         {new Date(message.timestamp).toLocaleTimeString()}
@@ -297,7 +297,7 @@ Please format as a numbered list with clear, specific questions.`;
                   disabled={!inputText.trim() || isLoading}
                   className={cn(
                     "w-12 h-12 rounded-full items-center justify-center",
-                    inputText.trim() && !isLoading ? "bg-blue-500" : "bg-gray-300"
+                    inputText.trim() && !isLoading ? "bg-emerald-500" : "bg-gray-300"
                   )}
                 >
                   <Ionicons

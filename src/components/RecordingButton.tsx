@@ -143,7 +143,7 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
         disabled={isProcessing}
         className={cn(
           "w-20 h-20 rounded-full items-center justify-center",
-          isRecording ? "bg-red-500" : "bg-blue-500",
+          isRecording ? "bg-red-500" : "bg-emerald-500",
           isProcessing && "opacity-50"
         )}
       >
@@ -166,7 +166,7 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
       )}
       
       {isProcessing && (
-        <Text className="mt-4 text-blue-500 font-medium">
+        <Text className="mt-4 text-emerald-500 font-medium">
           Processing...
         </Text>
       )}

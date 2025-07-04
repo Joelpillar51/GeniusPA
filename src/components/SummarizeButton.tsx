@@ -69,7 +69,7 @@ export const SummarizeButton: React.FC<SummarizeButtonProps> = ({
     if (variant === 'secondary') {
       return 'bg-gray-100 border border-gray-300';
     }
-    return 'bg-blue-500';
+    return 'bg-emerald-500';
   };
 
   const getTextColor = () => {

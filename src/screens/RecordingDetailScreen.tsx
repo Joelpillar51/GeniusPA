@@ -167,7 +167,7 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
             <View className="mb-6">
               <Pressable
                 onPress={playRecording}
-                className="flex-row items-center justify-center bg-blue-500 rounded-lg py-3 px-6"
+                className="flex-row items-center justify-center bg-emerald-500 rounded-lg py-3 px-6"
               >
                 <Ionicons
                   name={isPlaying ? "pause" : "play"}
