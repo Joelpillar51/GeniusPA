@@ -10,6 +10,7 @@ import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { TruncatedText } from '../components/TruncatedText';
+import { CircularDotSpinner } from '../components/CircularDotSpinner';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 import { processDocumentFromUrl, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';

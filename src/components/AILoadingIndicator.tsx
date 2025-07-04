@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TypingIndicator } from './TypingIndicator';
+import { CircularDotSpinner } from './CircularDotSpinner';
 
 interface AILoadingIndicatorProps {
   message?: string;
@@ -97,10 +98,10 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
             className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: `${stageInfo.color}20` }}
           >
-            <Ionicons 
-              name={stageInfo.icon} 
-              size={18} 
-              color={stageInfo.color} 
+            <CircularDotSpinner 
+              size={24} 
+              color={stageInfo.color}
+              dotCount={10}
             />
           </View>
         </View>
@@ -125,12 +126,13 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
             <View className="flex-row items-center justify-between">
               <TypingIndicator isVisible={true} color={stageInfo.color} />
               <View className="flex-row items-center">
-                <Text className="text-sm font-bold mr-2" style={{ color: stageInfo.color }}>
+                <Text className="text-sm font-bold mr-3" style={{ color: stageInfo.color }}>
                   {Math.round(Math.max(currentProgress, 5))}%
                 </Text>
-                <ActivityIndicator 
-                  size="small" 
+                <CircularDotSpinner 
+                  size={20} 
                   color={stageInfo.color}
+                  dotCount={8}
                 />
               </View>
             </View>

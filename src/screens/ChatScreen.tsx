@@ -9,6 +9,7 @@ import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ExportOptions } from '../components/ExportOptions';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
+import { CircularDotSpinner } from '../components/CircularDotSpinner';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
@@ -691,7 +692,7 @@ Please format as a numbered list with clear, specific questions.`;
                   )}
                 >
                   {isLoading ? (
-                    <ActivityIndicator size="small" color="white" />
+                    <CircularDotSpinner size={16} color="white" dotCount={6} />
                   ) : (
                     <Ionicons
                       name="send"
