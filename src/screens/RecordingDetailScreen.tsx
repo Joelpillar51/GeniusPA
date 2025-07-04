@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
+import { SummarizeButton } from '../components/SummarizeButton';
 import { Recording } from '../types/meeting';
 import { exportRecordingTranscript } from '../utils/pdfExport';
 import { getOpenAIChatResponse } from '../api/chat-service';
@@ -210,6 +211,14 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
                   multiline
                   placeholder="No summary available"
                   textStyle="text-gray-700 leading-relaxed"
+                />
+              ) : recording.transcript && !recording.isTranscribing ? (
+                <SummarizeButton
+                  content={recording.transcript}
+                  onSummaryGenerated={(summary) => updateRecording(recording.id, { summary })}
+                  contentType="recording"
+                  size="medium"
+                  variant="primary"
                 />
               ) : (
                 <Text className="text-gray-500 italic">

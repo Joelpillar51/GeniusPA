@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
+import { SummarizeButton } from '../components/SummarizeButton';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
 
@@ -152,6 +153,15 @@ export const DocumentDetailScreen: React.FC<DocumentDetailScreenProps> = ({ rout
                   multiline
                   placeholder="No summary available"
                   textStyle="text-gray-700 leading-relaxed"
+                />
+              ) : document.transcript && !document.isProcessing && 
+                 document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." ? (
+                <SummarizeButton
+                  content={document.transcript}
+                  onSummaryGenerated={(summary) => updateDocument(document.id, { summary })}
+                  contentType="document"
+                  size="medium"
+                  variant="primary"
                 />
               ) : (
                 <Text className="text-gray-500 italic">

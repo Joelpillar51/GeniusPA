@@ -7,6 +7,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
+import { SummarizeButton } from '../components/SummarizeButton';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 
@@ -60,15 +61,9 @@ export const DocumentsScreen: React.FC = () => {
         throw new Error('Unsupported file type');
       }
 
-      // Generate summary using AI
-      const summaryResponse = await getOpenAIChatResponse(
-        `Please provide a concise summary of this document in 2-3 sentences:\n\n${content.substring(0, 4000)}`
-      );
-
-      // Update document with content and summary
+      // Update document with content only, let user decide when to summarize
       updateDocument(newDocument.id, {
         transcript: content,
-        summary: summaryResponse.content,
         isProcessing: false,
       });
 
@@ -176,6 +171,26 @@ export const DocumentsScreen: React.FC = () => {
                         <Text className="text-blue-500 text-sm mt-1">
                           Processing...
                         </Text>
+                      )}
+                      
+                      {document.transcript && !document.isProcessing && !document.summary && 
+                       document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
+                        <Text className="text-green-600 text-sm mt-1 font-medium">
+                          ✓ Ready to summarize
+                        </Text>
+                      )}
+                      
+                      {document.transcript && !document.isProcessing && !document.summary && 
+                       document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
+                        <View className="mt-2">
+                          <SummarizeButton
+                            content={document.transcript}
+                            onSummaryGenerated={(summary) => updateDocument(document.id, { summary })}
+                            contentType="document"
+                            size="small"
+                            variant="secondary"
+                          />
+                        </View>
                       )}
                       
                       {document.summary && (

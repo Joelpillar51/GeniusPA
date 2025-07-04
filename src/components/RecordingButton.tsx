@@ -93,24 +93,11 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
           const transcript = await transcribeAudio(uri);
           
           if (transcript && transcript.trim().length > 0) {
-            // Generate summary only if transcript is meaningful
-            try {
-              const summaryResponse = await getOpenAIChatResponse(
-                `Please provide a concise summary of this transcript in 2-3 sentences. Focus on the main topics and key points discussed:\n\n${transcript}`
-              );
-
-              updateRecording(newRecording.id, {
-                transcript,
-                summary: summaryResponse.content,
-                isTranscribing: false,
-              });
-            } catch (summaryError) {
-              // Still save transcript even if summary fails
-              updateRecording(newRecording.id, {
-                transcript,
-                isTranscribing: false,
-              });
-            }
+            // Only save transcript, let user decide when to summarize
+            updateRecording(newRecording.id, {
+              transcript,
+              isTranscribing: false,
+            });
           } else {
             throw new Error('Empty transcript received');
           }

@@ -8,6 +8,7 @@ import { Audio } from 'expo-av';
 import { useMeetingStore } from '../state/meetingStore';
 import { RecordingButton } from '../components/RecordingButton';
 import { EditableText } from '../components/EditableText';
+import { SummarizeButton } from '../components/SummarizeButton';
 import { Recording } from '../types/meeting';
 import { exportRecordingTranscript } from '../utils/pdfExport';
 import { cn } from '../utils/cn';
@@ -151,6 +152,24 @@ export const RecordingsScreen: React.FC = () => {
                         <Text className="text-blue-500 text-sm mt-1">
                           Transcribing...
                         </Text>
+                      )}
+                      
+                      {recording.transcript && !recording.isTranscribing && !recording.summary && (
+                        <Text className="text-green-600 text-sm mt-1 font-medium">
+                          ✓ Ready to summarize
+                        </Text>
+                      )}
+                      
+                      {recording.transcript && !recording.isTranscribing && !recording.summary && (
+                        <View className="mt-2">
+                          <SummarizeButton
+                            content={recording.transcript}
+                            onSummaryGenerated={(summary) => updateRecording(recording.id, { summary })}
+                            contentType="recording"
+                            size="small"
+                            variant="secondary"
+                          />
+                        </View>
                       )}
                       
                       {recording.summary && (
