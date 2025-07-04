@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Alert, Switch, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../state/authStore';
@@ -18,13 +18,20 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
   const { recordings, documents, chatSessions } = useMeetingStore();
   const { plan, limits, getTodayUsage } = useSubscriptionStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(user?.name || '');
+  const [editName, setEditName] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
-  if (!user) {
-    console.log('ProfileModal: No user found');
-    return null;
-  }
+  // Debug logging
+  useEffect(() => {
+    console.log('ProfileModal render:', { visible, user: user?.name, plan });
+  }, [visible, user, plan]);
+
+  // Update editName when user changes or modal opens
+  useEffect(() => {
+    if (user?.name) {
+      setEditName(user.name);
+    }
+  }, [user?.name, visible]);
 
   const handleSaveName = () => {
     if (!editName.trim()) {
@@ -59,12 +66,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
   };
 
   const updateNotificationPreference = (key: keyof UserPreferences['notifications'], value: boolean) => {
-    updatePreferences({
-      notifications: {
-        ...user.preferences.notifications,
-        [key]: value,
-      }
-    });
+    if (user) {
+      updatePreferences({
+        notifications: {
+          ...user.preferences.notifications,
+          [key]: value,
+        }
+      });
+    }
   };
 
   const showDataInfo = () => {
@@ -75,6 +84,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
     );
   };
 
+  // Don't render if no user
+  if (!user) {
+    return null;
+  }
+
   return (
     <>
       <Modal
@@ -82,117 +96,233 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
         transparent
         animationType="slide"
         onRequestClose={onClose}
+        presentationStyle="overFullScreen"
       >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-3xl max-h-[90%]">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ 
+            backgroundColor: 'white', 
+            borderTopLeftRadius: 24, 
+            borderTopRightRadius: 24, 
+            maxHeight: '90%',
+            minHeight: '50%'
+          }}>
             {/* Header */}
-            <View className="px-6 py-4 border-b border-gray-200">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-2xl font-bold text-gray-900">Profile</Text>
-                <Pressable onPress={onClose} className="p-2 -mr-2">
-                  <Ionicons name="close" size={24} color="#6B7280" />
-                </Pressable>
-              </View>
+            <View style={{ 
+              paddingHorizontal: 24, 
+              paddingVertical: 16, 
+              borderBottomWidth: 1, 
+              borderBottomColor: '#E5E7EB',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#111827' }}>Profile</Text>
+              <Pressable onPress={onClose} style={{ padding: 8, marginRight: -8 }}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </Pressable>
             </View>
 
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <View className="px-6 py-6">
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <View style={{ padding: 24 }}>
                 {/* Profile Info */}
-                <View className="items-center mb-8">
-                  <View className="w-20 h-20 bg-emerald-100 rounded-full items-center justify-center mb-4 border-4 border-emerald-50">
-                    <View className="w-14 h-14 bg-emerald-500 rounded-full items-center justify-center">
-                      <Text className="text-white text-xl font-bold">
+                <View style={{ alignItems: 'center', marginBottom: 32 }}>
+                  <View style={{ 
+                    width: 80, 
+                    height: 80, 
+                    backgroundColor: '#ECFDF5', 
+                    borderRadius: 40, 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    marginBottom: 16,
+                    borderWidth: 4,
+                    borderColor: '#D1FAE5'
+                  }}>
+                    <View style={{ 
+                      width: 56, 
+                      height: 56, 
+                      backgroundColor: '#10B981', 
+                      borderRadius: 28, 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>
                         {user.name.charAt(0).toUpperCase()}
                       </Text>
                     </View>
                   </View>
                   
-                  {/* Name Editing */}
+                  {/* Name Display/Edit */}
                   {isEditing ? (
-                    <View className="flex-row items-center mb-4">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                       <TextInput
                         value={editName}
                         onChangeText={setEditName}
-                        className="bg-gray-50 border border-gray-200 text-gray-900 px-4 py-3 rounded-xl text-center font-semibold text-lg mr-3 min-w-[200px]"
+                        style={{
+                          backgroundColor: '#F9FAFB',
+                          borderWidth: 1,
+                          borderColor: '#E5E7EB',
+                          color: '#111827',
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          borderRadius: 12,
+                          textAlign: 'center',
+                          fontWeight: '600',
+                          fontSize: 18,
+                          marginRight: 12,
+                          minWidth: 200
+                        }}
                         placeholder="Enter name"
                         placeholderTextColor="#9CA3AF"
                       />
-                      <Pressable onPress={handleSaveName} className="w-12 h-12 bg-emerald-500 rounded-xl items-center justify-center mr-2">
+                      <Pressable 
+                        onPress={handleSaveName} 
+                        style={{ 
+                          width: 48, 
+                          height: 48, 
+                          backgroundColor: '#10B981', 
+                          borderRadius: 12, 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          marginRight: 8 
+                        }}
+                      >
                         <Ionicons name="checkmark" size={20} color="white" />
                       </Pressable>
-                      <Pressable onPress={() => setIsEditing(false)} className="w-12 h-12 bg-gray-200 rounded-xl items-center justify-center">
+                      <Pressable 
+                        onPress={() => setIsEditing(false)} 
+                        style={{ 
+                          width: 48, 
+                          height: 48, 
+                          backgroundColor: '#E5E7EB', 
+                          borderRadius: 12, 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}
+                      >
                         <Ionicons name="close" size={20} color="#6B7280" />
                       </Pressable>
                     </View>
                   ) : (
-                    <View className="flex-row items-center mb-2">
-                      <Text className="text-gray-900 text-xl font-bold mr-3">{user.name}</Text>
-                      <Pressable onPress={() => setIsEditing(true)} className="w-8 h-8 bg-gray-100 rounded-lg items-center justify-center">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ color: '#111827', fontSize: 20, fontWeight: 'bold', marginRight: 12 }}>
+                        {user.name}
+                      </Text>
+                      <Pressable 
+                        onPress={() => setIsEditing(true)} 
+                        style={{ 
+                          width: 32, 
+                          height: 32, 
+                          backgroundColor: '#F3F4F6', 
+                          borderRadius: 8, 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}
+                      >
                         <Ionicons name="pencil" size={14} color="#6B7280" />
                       </Pressable>
                     </View>
                   )}
                   
-                  <Text className="text-gray-600 text-base mb-1">{user.email}</Text>
-                  <Text className="text-gray-500 text-sm">
+                  <Text style={{ color: '#6B7280', fontSize: 16, marginBottom: 4 }}>{user.email}</Text>
+                  <Text style={{ color: '#9CA3AF', fontSize: 14 }}>
                     Member since {new Date(user.createdAt).toLocaleDateString()}
                   </Text>
                 </View>
 
                 {/* Usage Stats */}
-                <View className="mb-8 bg-gray-50 rounded-2xl p-6">
-                  <Text className="text-lg font-bold text-gray-900 mb-4 text-center">Usage Overview</Text>
-                  <View className="flex-row justify-around mb-4">
-                    <Pressable onPress={showDataInfo} className="items-center">
-                      <View className="w-14 h-14 bg-emerald-100 rounded-2xl items-center justify-center mb-2">
+                <View style={{ 
+                  marginBottom: 32, 
+                  backgroundColor: '#F9FAFB', 
+                  borderRadius: 16, 
+                  padding: 24 
+                }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16, textAlign: 'center' }}>
+                    Usage Overview
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 16 }}>
+                    <Pressable onPress={showDataInfo} style={{ alignItems: 'center' }}>
+                      <View style={{ 
+                        width: 56, 
+                        height: 56, 
+                        backgroundColor: '#ECFDF5', 
+                        borderRadius: 16, 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        marginBottom: 8 
+                      }}>
                         <Ionicons name="mic" size={20} color="#10B981" />
                       </View>
-                      <Text className="text-xl font-bold text-emerald-600 mb-1">{getTodayUsage().recordingsCount}</Text>
-                      <Text className="text-gray-600 text-xs font-medium">Today</Text>
-                      <Text className="text-gray-500 text-xs">
+                      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#10B981', marginBottom: 4 }}>
+                        {getTodayUsage().recordingsCount}
+                      </Text>
+                      <Text style={{ color: '#6B7280', fontSize: 12, fontWeight: '500' }}>Today</Text>
+                      <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
                         {limits.dailyRecordings === -1 ? 'Unlimited' : `${getTodayUsage().recordingsCount}/${limits.dailyRecordings}`}
                       </Text>
                     </Pressable>
-                    <Pressable onPress={showDataInfo} className="items-center">
-                      <View className="w-14 h-14 bg-blue-100 rounded-2xl items-center justify-center mb-2">
+                    
+                    <Pressable onPress={showDataInfo} style={{ alignItems: 'center' }}>
+                      <View style={{ 
+                        width: 56, 
+                        height: 56, 
+                        backgroundColor: '#EFF6FF', 
+                        borderRadius: 16, 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        marginBottom: 8 
+                      }}>
                         <Ionicons name="document-text" size={20} color="#3B82F6" />
                       </View>
-                      <Text className="text-xl font-bold text-blue-600 mb-1">{documents.length}</Text>
-                      <Text className="text-gray-600 text-xs font-medium">Total</Text>
-                      <Text className="text-gray-500 text-xs">
+                      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#3B82F6', marginBottom: 4 }}>
+                        {documents.length}
+                      </Text>
+                      <Text style={{ color: '#6B7280', fontSize: 12, fontWeight: '500' }}>Total</Text>
+                      <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
                         {limits.maxDocuments === -1 ? 'Unlimited' : `${documents.length}/${limits.maxDocuments}`}
                       </Text>
                     </Pressable>
-                    <Pressable onPress={showDataInfo} className="items-center">
-                      <View className="w-14 h-14 bg-purple-100 rounded-2xl items-center justify-center mb-2">
+                    
+                    <Pressable onPress={showDataInfo} style={{ alignItems: 'center' }}>
+                      <View style={{ 
+                        width: 56, 
+                        height: 56, 
+                        backgroundColor: '#F3E8FF', 
+                        borderRadius: 16, 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        marginBottom: 8 
+                      }}>
                         <Ionicons name="chatbubbles" size={20} color="#8B5CF6" />
                       </View>
-                      <Text className="text-xl font-bold text-purple-600 mb-1">{chatSessions.length}</Text>
-                      <Text className="text-gray-600 text-xs font-medium">Chats</Text>
-                      <Text className="text-gray-500 text-xs">
+                      <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#8B5CF6', marginBottom: 4 }}>
+                        {chatSessions.length}
+                      </Text>
+                      <Text style={{ color: '#6B7280', fontSize: 12, fontWeight: '500' }}>Chats</Text>
+                      <Text style={{ color: '#9CA3AF', fontSize: 12 }}>
                         {limits.aiChatProjects === -1 ? 'Unlimited' : `Max ${limits.aiChatProjects}`}
                       </Text>
                     </Pressable>
                   </View>
                   
                   {/* Subscription Status */}
-                  <View className={cn(
-                    "mt-4 p-4 rounded-xl border",
-                    plan === 'free' 
-                      ? "bg-gray-50 border-gray-200" 
-                      : plan === 'pro'
-                      ? "bg-emerald-50 border-emerald-200"
-                      : "bg-purple-50 border-purple-200"
-                  )}>
-                    <View className="flex-row items-center justify-between">
+                  <View style={{ 
+                    marginTop: 16, 
+                    padding: 16, 
+                    borderRadius: 12, 
+                    borderWidth: 1,
+                    backgroundColor: plan === 'free' ? '#F9FAFB' : plan === 'pro' ? '#ECFDF5' : '#F3E8FF',
+                    borderColor: plan === 'free' ? '#E5E7EB' : plan === 'pro' ? '#D1FAE5' : '#E9D5FF'
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <View>
-                        <Text className={cn(
-                          "font-semibold capitalize",
-                          plan === 'free' ? "text-gray-900" : plan === 'pro' ? "text-emerald-900" : "text-purple-900"
-                        )}>
+                        <Text style={{ 
+                          fontWeight: '600', 
+                          textTransform: 'capitalize',
+                          color: plan === 'free' ? '#111827' : plan === 'pro' ? '#065F46' : '#581C87'
+                        }}>
                           {plan} Plan
                         </Text>
-                        <Text className="text-gray-600 text-sm">
+                        <Text style={{ color: '#6B7280', fontSize: 14 }}>
                           {plan === 'free' 
                             ? '5 min recordings • 3/day • 1 document' 
                             : plan === 'pro'
@@ -204,9 +334,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                       {plan === 'free' && (
                         <Pressable 
                           onPress={() => setShowUpgradeModal(true)}
-                          className="bg-emerald-500 px-4 py-2 rounded-lg"
+                          style={{ backgroundColor: '#10B981', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
                         >
-                          <Text className="text-white font-semibold text-sm">Upgrade</Text>
+                          <Text style={{ color: 'white', fontWeight: '600', fontSize: 14 }}>Upgrade</Text>
                         </Pressable>
                       )}
                     </View>
@@ -214,14 +344,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                 </View>
 
                 {/* Quick Settings */}
-                <View className="mb-8 bg-white rounded-2xl p-6 border border-gray-100">
-                  <Text className="text-lg font-bold text-gray-900 mb-4">Quick Settings</Text>
+                <View style={{ 
+                  marginBottom: 32, 
+                  backgroundColor: 'white', 
+                  borderRadius: 16, 
+                  padding: 24, 
+                  borderWidth: 1, 
+                  borderColor: '#E5E7EB' 
+                }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>
+                    Quick Settings
+                  </Text>
                   
-                  <View className="space-y-4">
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">Auto Transcribe</Text>
-                        <Text className="text-gray-600 text-sm">
+                  <View>
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      marginBottom: 16 
+                    }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '500' }}>Auto Transcribe</Text>
+                        <Text style={{ color: '#6B7280', fontSize: 14 }}>
                           Automatically transcribe recordings
                         </Text>
                       </View>
@@ -233,10 +377,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                       />
                     </View>
 
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">Auto Summarize</Text>
-                        <Text className="text-gray-600 text-sm">
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between', 
+                      marginBottom: 16 
+                    }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '500' }}>Auto Summarize</Text>
+                        <Text style={{ color: '#6B7280', fontSize: 14 }}>
                           Generate summaries automatically
                         </Text>
                       </View>
@@ -248,10 +397,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                       />
                     </View>
 
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-1">
-                        <Text className="text-gray-900 font-medium">Notifications</Text>
-                        <Text className="text-gray-600 text-sm">
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between' 
+                    }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#111827', fontWeight: '500' }}>Notifications</Text>
+                        <Text style={{ color: '#6B7280', fontSize: 14 }}>
                           Get notified when transcription completes
                         </Text>
                       </View>
@@ -268,11 +421,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose }) 
                 {/* Sign Out */}
                 <Pressable
                   onPress={handleSignOut}
-                  className="bg-red-50 border border-red-200 rounded-2xl p-6 items-center mb-6"
+                  style={{ 
+                    backgroundColor: '#FEF2F2', 
+                    borderWidth: 1, 
+                    borderColor: '#FECACA', 
+                    borderRadius: 16, 
+                    padding: 24, 
+                    alignItems: 'center', 
+                    marginBottom: 24 
+                  }}
                 >
-                  <View className="flex-row items-center">
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-                    <Text className="text-red-600 font-semibold text-lg ml-2">Sign Out</Text>
+                    <Text style={{ color: '#EF4444', fontWeight: '600', fontSize: 18, marginLeft: 8 }}>
+                      Sign Out
+                    </Text>
                   </View>
                 </Pressable>
               </View>

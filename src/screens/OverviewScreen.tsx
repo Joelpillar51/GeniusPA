@@ -7,6 +7,7 @@ import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ProfileModal } from '../components/ProfileModal';
+import { TestProfileModal } from '../components/TestProfileModal';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { RecordingButton } from '../components/RecordingButton';
 import { cn } from '../utils/cn';
@@ -64,7 +65,10 @@ export const OverviewScreen: React.FC = () => {
           
           {/* Profile Avatar */}
           <Pressable
-            onPress={() => setShowProfileModal(true)}
+            onPress={() => {
+              console.log('Profile avatar pressed, user:', user);
+              setShowProfileModal(true);
+            }}
             className="w-12 h-12 bg-emerald-100 rounded-full items-center justify-center border-2 border-emerald-50"
           >
             <Text className="text-emerald-700 font-bold text-lg">
@@ -287,10 +291,17 @@ export const OverviewScreen: React.FC = () => {
       </ScrollView>
 
       {/* Profile Modal */}
+      <TestProfileModal
+        visible={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+      />
+      
+      {/* Original Profile Modal - commented out for testing
       <ProfileModal
         visible={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
+      */}
 
       {/* Upgrade Modal */}
       <UpgradeModal
