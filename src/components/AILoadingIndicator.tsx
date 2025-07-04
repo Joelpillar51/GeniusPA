@@ -32,25 +32,24 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
 
   // Auto-progress through stages and percentage for better UX
   useEffect(() => {
-    if (progress !== undefined) {
+    if (progress !== undefined && progress > 0) {
       setCurrentProgress(progress);
       return;
     }
     
-    if (!message) {
-      const stages = ['thinking', 'analyzing', 'generating', 'finalizing'];
-      let currentIndex = stages.indexOf(stage);
-      let progressValue = (currentIndex + 1) * 25; // 25%, 50%, 75%, 100%
-      
-      const interval = setInterval(() => {
-        currentIndex = (currentIndex + 1) % stages.length;
-        progressValue = Math.min((currentIndex + 1) * 25, 100);
-        setCurrentStage(stages[currentIndex] as any);
-        setCurrentProgress(progressValue);
-      }, 2000);
+    // Fallback auto-progression if no specific progress is provided
+    const stages = ['thinking', 'analyzing', 'generating', 'finalizing'];
+    let currentIndex = stages.indexOf(stage);
+    let progressValue = Math.max((currentIndex + 1) * 25, 10); // Minimum 10%
+    
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % stages.length;
+      progressValue = Math.min((currentIndex + 1) * 25, 95); // Max 95% for auto
+      setCurrentStage(stages[currentIndex] as any);
+      setCurrentProgress(progressValue);
+    }, 2000);
 
-      return () => clearInterval(interval);
-    }
+    return () => clearInterval(interval);
   }, [stage, message, progress]);
 
   const getStageInfo = () => {
@@ -91,53 +90,51 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
   const stageInfo = getStageInfo();
 
   return (
-    <View className="self-start bg-gray-50 border border-gray-200 p-4 rounded-2xl rounded-bl-md mb-4 max-w-[80%]">
+    <View className="self-start bg-white border-2 p-4 rounded-2xl rounded-bl-md shadow-sm max-w-[85%]" style={{ borderColor: `${stageInfo.color}30` }}>
       <View className="flex-row items-center">
         <View className="mr-3">
           <View 
-            className="w-8 h-8 rounded-full items-center justify-center"
+            className="w-10 h-10 rounded-full items-center justify-center"
             style={{ backgroundColor: `${stageInfo.color}20` }}
           >
             <Ionicons 
               name={stageInfo.icon} 
-              size={16} 
+              size={18} 
               color={stageInfo.color} 
             />
           </View>
         </View>
         
         <View className="flex-1">
-          <Text className="text-gray-900 font-medium">
+          <Text className="text-gray-900 font-semibold text-base">
             {message || `${stageInfo.text}${dots}`}
           </Text>
           
-          {!message && (
-            <View className="mt-3">
-              <View className="flex-row items-center mb-2">
-                <View className="flex-1 bg-gray-200 h-1 rounded-full overflow-hidden">
-                  <View 
-                    className="h-full rounded-full"
-                    style={{ 
-                      backgroundColor: stageInfo.color,
-                      width: `${Math.min(currentProgress, 100)}%`
-                    }}
-                  />
-                </View>
-              </View>
-              <View className="flex-row items-center justify-between">
-                <TypingIndicator isVisible={true} color={stageInfo.color} />
-                <View className="flex-row items-center">
-                  <Text className="text-xs font-medium mr-2" style={{ color: stageInfo.color }}>
-                    {Math.round(currentProgress)}%
-                  </Text>
-                  <ActivityIndicator 
-                    size="small" 
-                    color={stageInfo.color}
-                  />
-                </View>
+          <View className="mt-3">
+            <View className="flex-row items-center mb-3">
+              <View className="flex-1 bg-gray-200 h-2 rounded-full overflow-hidden">
+                <View 
+                  className="h-full rounded-full"
+                  style={{ 
+                    backgroundColor: stageInfo.color,
+                    width: `${Math.min(Math.max(currentProgress, 5), 100)}%`
+                  }}
+                />
               </View>
             </View>
-          )}
+            <View className="flex-row items-center justify-between">
+              <TypingIndicator isVisible={true} color={stageInfo.color} />
+              <View className="flex-row items-center">
+                <Text className="text-sm font-bold mr-2" style={{ color: stageInfo.color }}>
+                  {Math.round(Math.max(currentProgress, 5))}%
+                </Text>
+                <ActivityIndicator 
+                  size="small" 
+                  color={stageInfo.color}
+                />
+              </View>
+            </View>
+          </View>
         </View>
       </View>
       

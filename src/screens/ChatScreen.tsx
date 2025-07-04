@@ -185,16 +185,19 @@ What would you like to chat about today?`,
     
     setInputText('');
     setIsLoading(true);
-    setLoadingMessage('');
-    setLoadingProgress(0);
+    setLoadingMessage('Starting AI response...');
+    setLoadingProgress(10);
 
     try {
+      // Small delay to show initial loading state
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       let contextPrompt = '';
       
       if (directChatMode || !selectedItem) {
         // Direct AI chat mode - no document context
         setLoadingMessage('Preparing response...');
-        setLoadingProgress(25);
+        setLoadingProgress(30);
         
         contextPrompt = `You are a helpful AI assistant. Please provide a comprehensive and helpful response to the user's question or request.
 
@@ -225,7 +228,7 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
 
         // Get the content for context
         setLoadingMessage('Accessing document content...');
-        setLoadingProgress(20);
+        setLoadingProgress(25);
         
         const item = selectedItem.type === 'recording' 
           ? recordings.find(r => r.id === selectedItem.id)
@@ -238,7 +241,7 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
         console.log('Chat content preview:', content.substring(0, 200));
         
         setLoadingMessage('Analyzing content...');
-        setLoadingProgress(40);
+        setLoadingProgress(45);
         
         // Check if the document content is actually extractable or just a placeholder
         const isPlaceholderContent = content.includes('📄') || 
@@ -299,9 +302,16 @@ Please provide a comprehensive and helpful response based on the content provide
       }
 
       setLoadingMessage('Generating AI response...');
-      setLoadingProgress(70);
+      setLoadingProgress(75);
+      
+      // Show progress during API call
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => Math.min(prev + 2, 90));
+      }, 200);
+      
       const response = await getOpenAIChatResponse(contextPrompt);
-      setLoadingProgress(90);
+      clearInterval(progressInterval);
+      setLoadingProgress(95);
 
       const assistantMessage: ChatMessage = {
         id: `msg_${Date.now()}_ai`,
@@ -311,6 +321,8 @@ Please provide a comprehensive and helpful response based on the content provide
         relatedItemId: selectedItem?.id || null,
       };
 
+      setLoadingMessage('Finalizing response...');
+      
       addMessageToSession(currentSession.id, assistantMessage);
       
       // Force update current session with the new AI message
@@ -324,13 +336,21 @@ Please provide a comprehensive and helpful response based on the content provide
       setCurrentSession(finalUpdatedSession);
       
       setLoadingProgress(100);
+      
+      // Small delay to show completion
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error('Error sending message:', error);
+      setLoadingMessage('Error occurred');
+      setLoadingProgress(0);
       Alert.alert('Error', 'Failed to get AI response. Please try again.');
     } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-      setLoadingProgress(0);
+      // Ensure loading state is cleared after a short delay
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingMessage('');
+        setLoadingProgress(0);
+      }, 500);
     }
   };
 
@@ -372,7 +392,7 @@ Please provide a comprehensive and helpful response based on the content provide
 
     setIsLoading(true);
     setLoadingMessage('Analyzing content for questions...');
-    setLoadingProgress(25);
+    setLoadingProgress(15);
     
     try {
       const item = selectedItem.type === 'recording' 
@@ -382,7 +402,12 @@ Please provide a comprehensive and helpful response based on the content provide
       const content = item?.transcript || '';
       
       setLoadingMessage('Generating thoughtful questions...');
-      setLoadingProgress(60);
+      setLoadingProgress(50);
+      
+      // Show progress during API call
+      const progressInterval = setInterval(() => {
+        setLoadingProgress(prev => Math.min(prev + 3, 85));
+      }, 300);
       
       const prompt = `Based on this ${selectedItem.type} content, generate 3 thoughtful questions that would help someone better understand or test their knowledge of this material:
 
@@ -391,6 +416,8 @@ ${content}
 Please format as a numbered list with clear, specific questions.`;
 
       const response = await getOpenAIChatResponse(prompt);
+      clearInterval(progressInterval);
+      setLoadingProgress(90);
 
       const questionsMessage: ChatMessage = {
         id: `msg_${Date.now()}_questions`,
@@ -400,6 +427,8 @@ Please format as a numbered list with clear, specific questions.`;
         relatedItemId: selectedItem.id,
       };
 
+      setLoadingMessage('Finalizing questions...');
+      
       addMessageToSession(currentSession.id, questionsMessage);
       
       // Force update current session with the new questions message
@@ -413,13 +442,21 @@ Please format as a numbered list with clear, specific questions.`;
       setCurrentSession(updatedSessionWithQuestions);
       
       setLoadingProgress(100);
+      
+      // Small delay to show completion
+      await new Promise(resolve => setTimeout(resolve, 200));
     } catch (error) {
       console.error('Error generating questions:', error);
+      setLoadingMessage('Error occurred');
+      setLoadingProgress(0);
       Alert.alert('Error', 'Failed to generate questions. Please try again.');
     } finally {
-      setIsLoading(false);
-      setLoadingMessage('');
-      setLoadingProgress(0);
+      // Ensure loading state is cleared after a short delay
+      setTimeout(() => {
+        setIsLoading(false);
+        setLoadingMessage('');
+        setLoadingProgress(0);
+      }, 500);
     }
   };
 
@@ -620,10 +657,12 @@ Please format as a numbered list with clear, specific questions.`;
                   ))}
                   
                   {isLoading && (
-                    <AILoadingIndicator 
-                      message={loadingMessage} 
-                      progress={loadingProgress}
-                    />
+                    <View className="mb-4">
+                      <AILoadingIndicator 
+                        message={loadingMessage || 'AI is thinking...'} 
+                        progress={loadingProgress || 10}
+                      />
+                    </View>
                   )}
                 </View>
               )}
