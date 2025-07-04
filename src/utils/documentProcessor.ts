@@ -101,22 +101,38 @@ const processTextFile = async (uri: string, fileName: string): Promise<DocumentP
 
 const processPDFFile = async (uri: string, fileName: string, fileSize?: number): Promise<DocumentProcessingResult> => {
   try {
-    // Attempt to read PDF as text (works for some text-based PDFs)
-    const rawContent = await FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.UTF8
-    });
+    // First, try to read the PDF as UTF-8 text
+    let rawContent = '';
+    try {
+      rawContent = await FileSystem.readAsStringAsync(uri, {
+        encoding: FileSystem.EncodingType.UTF8
+      });
+    } catch (utf8Error) {
+      // If UTF-8 fails, try reading as base64 and then convert
+      try {
+        const base64Content = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64
+        });
+        // Try to decode base64 content
+        rawContent = atob(base64Content);
+      } catch (base64Error) {
+        console.log('Both UTF-8 and Base64 reading failed:', utf8Error, base64Error);
+      }
+    }
     
-    // Check if we got meaningful text content
-    const hasText = rawContent && rawContent.length > 100 && 
-                   (rawContent.includes('text') || rawContent.includes('stream') || 
-                    /[a-zA-Z]{3,}/.test(rawContent.substring(0, 1000)));
-    
-    if (hasText) {
-      // Extract readable text using basic pattern matching
+    if (rawContent && rawContent.length > 0) {
+      // Extract readable text using enhanced pattern matching
       const extractedText = extractTextFromPDFContent(rawContent);
-      if (extractedText.length > 50) {
+      
+      // Check if we got meaningful text (more than just random characters)
+      const meaningfulText = extractedText.length > 100 && 
+                           /[a-zA-Z\s]{20,}/.test(extractedText) &&
+                           !extractedText.includes('����') && // Filter out garbled text
+                           extractedText.split(/\s+/).length > 10; // Must have at least 10 words
+      
+      if (meaningfulText) {
         return {
-          content: extractedText,
+          content: cleanExtractedText(extractedText),
           success: true,
           fileType: 'pdf',
           message: 'PDF text extracted successfully'
@@ -124,7 +140,7 @@ const processPDFFile = async (uri: string, fileName: string, fileSize?: number):
       }
     }
     
-    // If we can't extract text, provide a helpful placeholder
+    // If we can't extract meaningful text, provide a helpful placeholder
     return {
       content: createPDFPlaceholderMessage(fileName, fileSize),
       success: true, // Still successful upload, just need manual processing
@@ -133,6 +149,7 @@ const processPDFFile = async (uri: string, fileName: string, fileSize?: number):
     };
     
   } catch (error) {
+    console.error('PDF processing error:', error);
     return {
       content: createPDFPlaceholderMessage(fileName, fileSize),
       success: true,
@@ -153,28 +170,49 @@ const processWordFile = async (uri: string, fileName: string): Promise<DocumentP
 };
 
 const extractTextFromPDFContent = (rawContent: string): string => {
-  // Basic text extraction patterns for PDF content
-  const textPatterns = [
-    /stream\s*(.*?)\s*endstream/g,
-    /\(([^)]+)\)/g,
-    /\/\w+\s+([A-Za-z0-9\s.,!?-]+)/g
-  ];
-  
   let extractedText = '';
   
-  for (const pattern of textPatterns) {
+  // Enhanced text extraction patterns for PDF content
+  const patterns = [
+    // Text streams
+    /stream\s*([^]*?)\s*endstream/gi,
+    // Parenthetical content (common in PDFs)
+    /\(([^)]+)\)/g,
+    // Text objects
+    /BT\s+([^]*?)\s+ET/gi,
+    // Show text commands
+    /Tj\s*\[(.*?)\]/gi,
+    // Simple text patterns
+    /\/F\d+\s+\d+\s+Tf\s*([A-Za-z0-9\s.,!?;:'"()-]+)/gi,
+    // Any readable text sequences
+    /[A-Za-z][A-Za-z0-9\s.,!?;:'"()-]{10,}/g
+  ];
+  
+  for (const pattern of patterns) {
     const matches = rawContent.match(pattern);
     if (matches) {
       for (const match of matches) {
-        const cleanText = match
-          .replace(/stream|endstream|\(|\)|\/\w+/g, '')
-          .replace(/[^\w\s.,!?-]/g, ' ')
+        let cleanText = match
+          .replace(/stream|endstream|BT|ET|Tj|\[|\]|\(|\)|\/F\d+|\d+\s+Tf/gi, '')
+          .replace(/[^\w\s.,!?;:'"()-]/g, ' ')
           .replace(/\s+/g, ' ')
           .trim();
         
-        if (cleanText.length > 10 && /[a-zA-Z]{3,}/.test(cleanText)) {
+        // Only add if it contains meaningful text
+        if (cleanText.length > 15 && /[a-zA-Z]{5,}/.test(cleanText)) {
           extractedText += cleanText + ' ';
         }
+      }
+    }
+  }
+  
+  // Try a more direct approach - look for readable sentences
+  const sentences = rawContent.match(/[A-Z][a-zA-Z0-9\s.,!?;:'"()-]{20,}[.!?]/g);
+  if (sentences) {
+    for (const sentence of sentences) {
+      const cleanSentence = sentence.replace(/[^\w\s.,!?;:'"()-]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (cleanSentence.length > 20) {
+        extractedText += cleanSentence + ' ';
       }
     }
   }
@@ -182,30 +220,38 @@ const extractTextFromPDFContent = (rawContent: string): string => {
   return extractedText.trim();
 };
 
+const cleanExtractedText = (text: string): string => {
+  return text
+    .replace(/\s+/g, ' ') // Normalize whitespace
+    .replace(/([.!?])\s*([A-Z])/g, '$1\n\n$2') // Add paragraph breaks after sentences
+    .replace(/^\s+|\s+$/gm, '') // Trim lines
+    .replace(/\n{3,}/g, '\n\n') // Limit multiple line breaks
+    .trim();
+};
+
 const createPDFPlaceholderMessage = (fileName: string, fileSize?: number): string => {
   const sizeText = fileSize ? ` (${(fileSize / 1024 / 1024).toFixed(1)} MB)` : '';
   
-  return `📄 PDF Document: "${fileName}"${sizeText}
+  return `PDF Document: ${fileName}${sizeText}
 
-✅ Successfully uploaded and ready for use!
+This PDF has been uploaded successfully! To get the most out of AI analysis with this document:
 
-🤖 AI Chat Integration:
-You can now ask questions about this document in the AI Chat tab. The AI can help with:
-• Summarizing content
-• Answering specific questions
-• Extracting key information
+OPTION 1 - Copy & Paste Method (Recommended):
+• Open your PDF in another app
+• Copy the text you want to analyze
+• Come back to the AI Chat and paste it in your question
+• Example: "Analyze this text: [paste your content here]"
 
-💡 For best results:
-• Copy and paste specific text sections you want to analyze
-• Ask direct questions about the document content
-• Use the AI Chat feature to interact with this document
+OPTION 2 - Manual Text Entry:
+• Tap "Edit" on this document
+• Type or paste the document content
+• The AI will then be able to analyze the full text
 
-📱 How to use:
-1. Go to the AI Chat tab
-2. Select this document as your source
-3. Ask questions like "What are the main points?" or "Summarize this document"
+OPTION 3 - Convert to Text:
+• Save your PDF as a .txt file
+• Upload the text version for full AI integration
 
-The document is now saved in your library and ready for AI-powered analysis!`;
+The AI Chat is ready to help analyze any text content you provide from this document!`;
 };
 
 const createWordFileMessage = (fileName: string): string => {

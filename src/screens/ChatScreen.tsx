@@ -43,6 +43,44 @@ export const ChatScreen: React.FC = () => {
           relatedItemId: selectedItem.id,
           relatedItemType: selectedItem.type,
         };
+        
+        // Add welcome message for documents that might need manual content input
+        if (selectedItem.type === 'document') {
+          const item = documents.find(d => d.id === selectedItem.id);
+          const content = item?.transcript || '';
+          const isPlaceholderContent = content.includes('📄') || 
+                                     content.includes('PDF document') || 
+                                     content.includes('Copy & Paste Method') ||
+                                     content.length < 100;
+          
+          if (isPlaceholderContent) {
+            const welcomeMessage: ChatMessage = {
+              id: `msg_welcome_${Date.now()}`,
+              role: 'assistant',
+              content: `👋 Hi! I'm ready to help you analyze "${selectedItem.title}".
+
+I notice this is a PDF or document that may need manual text input for the best AI analysis. Here's how we can work together:
+
+🔍 **To analyze specific content:**
+Copy text from your document and ask: "Analyze this content: [paste text here]"
+
+📝 **To get general help:**
+Ask questions like:
+• "What type of document is this likely to be?"
+• "How should I approach analyzing this content?"
+• "What questions should I ask about this material?"
+
+✏️ **To enable full document analysis:**
+Edit this document and add the text content, then I can analyze the entire document.
+
+What would you like to explore about this document?`,
+              timestamp: new Date(),
+              relatedItemId: selectedItem.id,
+            };
+            newSession.messages.push(welcomeMessage);
+          }
+        }
+        
         createChatSession(newSession);
         setCurrentSession(newSession);
       }
@@ -102,14 +140,68 @@ export const ChatScreen: React.FC = () => {
 
       const content = item?.transcript || '';
       
-      // Build context prompt
-      const contextPrompt = `You are an AI assistant helping analyze ${selectedItem.type === 'recording' ? 'a meeting/class recording' : 'a document'}. Here is the content:
+      // Debug logging to see what content we're working with
+      console.log('Chat content length:', content.length);
+      console.log('Chat content preview:', content.substring(0, 200));
+      
+      // Check if the document content is actually extractable or just a placeholder
+      const isPlaceholderContent = content.includes('📄') || 
+                                   content.includes('PDF document') || 
+                                   content.includes('uploaded successfully') ||
+                                   content.includes('manual text extraction') ||
+                                   content.includes('cannot directly read') ||
+                                   content.includes('However, you can use the AI Chat') ||
+                                   content.includes('AI Chat integration') ||
+                                   content.includes('Copy and paste specific text sections');
+      
+      let contextPrompt = '';
+      
+      if (isPlaceholderContent || !content.trim() || content.length < 50) {
+        // Handle cases where we don't have actual extractable content
+        const fileName = selectedItem.title.toLowerCase();
+        let topicHint = '';
+        
+        // Try to provide helpful context based on filename
+        if (fileName.includes('secret') || fileName.includes('pro')) {
+          topicHint = ' This appears to be a professional or confidential document.';
+        } else if (fileName.includes('report') || fileName.includes('analysis')) {
+          topicHint = ' This seems to be a report or analysis document.';
+        } else if (fileName.includes('guide') || fileName.includes('manual')) {
+          topicHint = ' This looks like a guide or manual.';
+        } else if (fileName.includes('contract') || fileName.includes('agreement')) {
+          topicHint = ' This appears to be a contract or agreement.';
+        }
+
+        contextPrompt = `I can see you're asking about the ${selectedItem.type === 'recording' ? 'recording' : 'document'} "${selectedItem.title}".${topicHint}
+
+However, I cannot directly access the content of this file for detailed analysis. This is common with PDFs and certain document formats.
+
+Your question: "${inputText.trim()}"
+
+Here's how I can help you right now:
+
+**🔍 For immediate analysis:**
+Copy and paste the specific text you want me to analyze, and I'll provide detailed insights.
+
+**📋 General assistance:**
+I can offer general guidance about ${fileName.includes('report') ? 'report analysis' : fileName.includes('contract') ? 'contract review' : fileName.includes('guide') ? 'using guides effectively' : 'document analysis'} techniques and what to look for.
+
+**💡 To enable full document analysis:**
+Edit the document in the Documents tab and add the text content - then I'll be able to analyze the entire document.
+
+Would you like to share some specific text for analysis, or would you prefer general guidance about working with this type of document?`;
+      } else {
+        // We have actual content to analyze
+        contextPrompt = `You are an AI assistant analyzing ${selectedItem.type === 'recording' ? 'a meeting/class recording' : 'a document'} titled "${selectedItem.title}". 
+
+Here is the extracted content:
 
 ${content}
 
-Now please answer the following question about this content: ${inputText.trim()}
+User's question: ${inputText.trim()}
 
-Please provide a helpful and accurate response based only on the content provided. If the question is not related to the provided content, politely redirect the user to ask questions about the specific content.`;
+Please provide a comprehensive and helpful response based on the content provided. Be specific and reference details from the content when answering. If the question is not directly related to the provided content, politely redirect to ask questions about the specific material.`;
+      }
 
       const response = await getOpenAIChatResponse(contextPrompt);
 
@@ -134,20 +226,33 @@ Please provide a helpful and accurate response based only on the content provide
   const checkIfOffTopic = (question: string): boolean => {
     const offTopicKeywords = [
       'weather', 'news', 'joke', 'recipe', 'movie', 'game', 'sport',
-      'travel', 'restaurant', 'shopping', 'code', 'programming',
-      'math problem', 'homework', 'translate', 'write a', 'create a',
-      'generate', 'help me with', 'what is', 'how to', 'explain',
+      'travel', 'restaurant', 'shopping'
     ];
     
     const lowerQuestion = question.toLowerCase();
-    return offTopicKeywords.some(keyword => 
-      lowerQuestion.includes(keyword) && 
-      !lowerQuestion.includes('document') && 
-      !lowerQuestion.includes('recording') &&
-      !lowerQuestion.includes('transcript') &&
-      !lowerQuestion.includes('meeting') &&
-      !lowerQuestion.includes('content')
-    );
+    
+    // Allow analysis and content-related questions
+    const isContentRelated = lowerQuestion.includes('document') || 
+                            lowerQuestion.includes('recording') ||
+                            lowerQuestion.includes('transcript') ||
+                            lowerQuestion.includes('meeting') ||
+                            lowerQuestion.includes('content') ||
+                            lowerQuestion.includes('analyze') ||
+                            lowerQuestion.includes('summary') ||
+                            lowerQuestion.includes('summarize') ||
+                            lowerQuestion.includes('explain') ||
+                            lowerQuestion.includes('what') ||
+                            lowerQuestion.includes('how') ||
+                            lowerQuestion.includes('why') ||
+                            lowerQuestion.includes('main points') ||
+                            lowerQuestion.includes('key') ||
+                            lowerQuestion.includes('about');
+    
+    if (isContentRelated) {
+      return false; // Allow content-related questions
+    }
+    
+    return offTopicKeywords.some(keyword => lowerQuestion.includes(keyword));
   };
 
   const generateQuestions = async () => {
