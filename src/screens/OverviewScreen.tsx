@@ -285,7 +285,7 @@ export const OverviewScreen: React.FC = () => {
       </ScrollView>
 
       {/* Profile Modal */}
-      <TestProfileModal
+      <ProfileModal
         visible={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
