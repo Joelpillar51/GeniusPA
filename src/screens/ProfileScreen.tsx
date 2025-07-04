@@ -7,6 +7,7 @@ import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UserPreferences } from '../types/auth';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { cn } from '../utils/cn';
 
 export const ProfileScreen: React.FC = () => {
   const { user, signOut, updateUser, updatePreferences } = useAuthStore();
