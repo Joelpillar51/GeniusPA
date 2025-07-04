@@ -170,9 +170,15 @@ export const RecordingsScreen: React.FC = () => {
                       )}
                       
                       {recording.summary && (
-                        <Text className="text-gray-700 text-sm mt-2 italic">
-                          {recording.summary}
-                        </Text>
+                        <View className="mt-2">
+                          <TruncatedText
+                            text={recording.summary}
+                            wordLimit={15}
+                            textStyle="text-gray-700 text-sm italic"
+                            showEditIcon={false}
+                            label="Summary"
+                          />
+                        </View>
                       )}
                     </View>
                     

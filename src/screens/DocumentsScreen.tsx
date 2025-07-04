@@ -318,9 +318,15 @@ export const DocumentsScreen: React.FC = () => {
                       )}
                       
                       {document.summary && (
-                        <Text className="text-gray-700 text-sm mt-2 italic">
-                          {document.summary}
-                        </Text>
+                        <View className="mt-2">
+                          <TruncatedText
+                            text={document.summary}
+                            wordLimit={15}
+                            textStyle="text-gray-700 text-sm italic"
+                            showEditIcon={false}
+                            label="Summary"
+                          />
+                        </View>
                       )}
                     </View>
                     

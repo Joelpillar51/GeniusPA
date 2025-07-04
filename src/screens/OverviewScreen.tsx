@@ -199,9 +199,6 @@ export const OverviewScreen: React.FC = () => {
                       <Ionicons name="mic" size={18} color="#10B981" />
                     </View>
                   </View>
-                  <View className="absolute top-4 right-4">
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                  </View>
                 </Pressable>
               ))}
             </View>
@@ -243,9 +240,6 @@ export const OverviewScreen: React.FC = () => {
                     <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
                       <Ionicons name="document-text" size={18} color="#3B82F6" />
                     </View>
-                  </View>
-                  <View className="absolute top-4 right-4">
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                   </View>
                 </Pressable>
               ))}
