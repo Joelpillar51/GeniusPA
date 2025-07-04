@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
+import { ExportOptions } from '../components/ExportOptions';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
 
@@ -21,6 +22,7 @@ export const DocumentDetailScreen: React.FC<DocumentDetailScreenProps> = ({ rout
   const { documentId } = route.params;
   const { documents, updateDocument, deleteDocument } = useMeetingStore();
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
   const document = documents.find(d => d.id === documentId);
 
@@ -89,9 +91,14 @@ export const DocumentDetailScreen: React.FC<DocumentDetailScreenProps> = ({ rout
               <Ionicons name="arrow-back" size={24} color="#6B7280" />
             </Pressable>
             
-            <Pressable onPress={handleDelete} className="p-2">
-              <Ionicons name="trash-outline" size={24} color="#EF4444" />
-            </Pressable>
+            <View className="flex-row">
+              <Pressable onPress={() => setExportModalVisible(true)} className="p-2 mr-2">
+                <Ionicons name="share-outline" size={24} color="#10B981" />
+              </Pressable>
+              <Pressable onPress={handleDelete} className="p-2">
+                <Ionicons name="trash-outline" size={24} color="#EF4444" />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -198,6 +205,14 @@ export const DocumentDetailScreen: React.FC<DocumentDetailScreenProps> = ({ rout
             </View>
           </View>
         </ScrollView>
+        
+        {/* Export Modal */}
+        <ExportOptions
+          visible={exportModalVisible}
+          onClose={() => setExportModalVisible(false)}
+          data={document}
+          type="document"
+        />
       </View>
     </SafeAreaView>
   );

@@ -6,8 +6,8 @@ import { Audio } from 'expo-av';
 import { useMeetingStore } from '../state/meetingStore';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
+import { ExportOptions } from '../components/ExportOptions';
 import { Recording } from '../types/meeting';
-import { exportRecordingTranscript } from '../utils/pdfExport';
 import { getOpenAIChatResponse } from '../api/chat-service';
 
 interface RecordingDetailScreenProps {
@@ -25,6 +25,7 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
 
   const recording = recordings.find(r => r.id === recordingId);
 
@@ -109,13 +110,8 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
     );
   };
 
-  const handleExport = async () => {
-    try {
-      await exportRecordingTranscript(recording);
-    } catch (error) {
-      console.error('Error exporting recording:', error);
-      Alert.alert('Error', 'Failed to export recording. Please try again.');
-    }
+  const handleExport = () => {
+    setExportModalVisible(true);
   };
 
   const formatDuration = (seconds: number) => {
@@ -249,6 +245,14 @@ export const RecordingDetailScreen: React.FC<RecordingDetailScreenProps> = ({ ro
             </View>
           </View>
         </ScrollView>
+        
+        {/* Export Modal */}
+        <ExportOptions
+          visible={exportModalVisible}
+          onClose={() => setExportModalVisible(false)}
+          data={recording}
+          type="recording"
+        />
       </View>
     </SafeAreaView>
   );

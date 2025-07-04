@@ -9,8 +9,8 @@ import { useMeetingStore } from '../state/meetingStore';
 import { RecordingButton } from '../components/RecordingButton';
 import { EditableText } from '../components/EditableText';
 import { SummarizeButton } from '../components/SummarizeButton';
+import { ExportOptions } from '../components/ExportOptions';
 import { Recording } from '../types/meeting';
-import { exportRecordingTranscript } from '../utils/pdfExport';
 import { cn } from '../utils/cn';
 
 export const RecordingsScreen: React.FC = () => {
@@ -19,6 +19,8 @@ export const RecordingsScreen: React.FC = () => {
   const { recordings, deleteRecording, updateRecording } = useMeetingStore();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
 
   const sortedRecordings = recordings.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -78,13 +80,9 @@ export const RecordingsScreen: React.FC = () => {
     );
   };
 
-  const handleExportRecording = async (recording: Recording) => {
-    try {
-      await exportRecordingTranscript(recording);
-    } catch (error) {
-      console.error('Error exporting recording:', error);
-      Alert.alert('Error', 'Failed to export recording. Please try again.');
-    }
+  const handleExportRecording = (recording: Recording) => {
+    setSelectedRecording(recording);
+    setExportModalVisible(true);
   };
 
   const formatDuration = (seconds: number) => {
@@ -228,6 +226,19 @@ export const RecordingsScreen: React.FC = () => {
             </View>
           )}
         </ScrollView>
+        
+        {/* Export Modal */}
+        {selectedRecording && (
+          <ExportOptions
+            visible={exportModalVisible}
+            onClose={() => {
+              setExportModalVisible(false);
+              setSelectedRecording(null);
+            }}
+            data={selectedRecording}
+            type="recording"
+          />
+        )}
       </View>
     </SafeAreaView>
   );

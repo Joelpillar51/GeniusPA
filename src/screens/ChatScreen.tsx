@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
 import { ChatSession, ChatMessage, Recording, Document } from '../types/meeting';
 import { getOpenAIChatResponse } from '../api/chat-service';
-import { exportChatToPDF } from '../utils/pdfExport';
+import { ExportOptions } from '../components/ExportOptions';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
@@ -15,6 +15,7 @@ export const ChatScreen: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<{id: string, type: 'recording' | 'document', title: string} | null>(null);
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   const allItems = [
@@ -143,15 +144,9 @@ Please format as a numbered list with clear, specific questions.`;
     }
   };
 
-  const exportChat = async () => {
+  const exportChat = () => {
     if (!currentSession) return;
-
-    try {
-      await exportChatToPDF(currentSession);
-    } catch (error) {
-      console.error('Error exporting chat:', error);
-      Alert.alert('Error', 'Failed to export chat. Please try again.');
-    }
+    setExportModalVisible(true);
   };
 
   return (
@@ -314,6 +309,16 @@ Please format as a numbered list with clear, specific questions.`;
               </View>
             </View>
           </View>
+        )}
+        
+        {/* Export Modal */}
+        {currentSession && (
+          <ExportOptions
+            visible={exportModalVisible}
+            onClose={() => setExportModalVisible(false)}
+            data={currentSession}
+            type="chat"
+          />
         )}
       </KeyboardAvoidingView>
     </SafeAreaView>

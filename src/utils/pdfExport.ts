@@ -2,69 +2,49 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import { ChatSession } from '../types/meeting';
 
+const createPlainTextContent = (chatSession: ChatSession): string => {
+  const header = `${chatSession.title}\n${'='.repeat(chatSession.title.length)}\n\nExported on: ${new Date().toLocaleDateString()}\nTotal messages: ${chatSession.messages.length}\n\n`;
+  
+  const messages = chatSession.messages.map(message => {
+    const timestamp = new Date(message.timestamp).toLocaleString();
+    const speaker = message.role === 'user' ? 'You' : 'AI Assistant';
+    return `[${timestamp}] ${speaker}:\n${message.content}\n`;
+  }).join('\n');
+  
+  return header + messages;
+};
+
 export const exportChatToPDF = async (chatSession: ChatSession) => {
   try {
-    // Create a simple HTML representation
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>${chatSession.title}</title>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { border-bottom: 2px solid #ccc; margin-bottom: 20px; padding-bottom: 10px; }
-        .message { margin-bottom: 15px; }
-        .user { text-align: right; }
-        .assistant { text-align: left; }
-        .message-content { display: inline-block; padding: 10px; border-radius: 10px; max-width: 70%; }
-        .user .message-content { background-color: #007AFF; color: white; }
-        .assistant .message-content { background-color: #f0f0f0; color: black; }
-        .timestamp { font-size: 12px; color: #666; margin-top: 5px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>${chatSession.title}</h1>
-        <p>Exported on ${new Date().toLocaleDateString()}</p>
-        <p>Total messages: ${chatSession.messages.length}</p>
-    </div>
+    // Create plain text content
+    const content = createPlainTextContent(chatSession);
     
-    <div class="messages">
-        ${chatSession.messages.map(message => `
-            <div class="message ${message.role}">
-                <div class="message-content">
-                    ${message.content.replace(/\n/g, '<br>')}
-                </div>
-                <div class="timestamp">
-                    ${new Date(message.timestamp).toLocaleString()}
-                </div>
-            </div>
-        `).join('')}
-    </div>
-</body>
-</html>
-    `;
-
-    // Create a temporary HTML file
-    const fileName = `${chatSession.title.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.html`;
+    // Create a text file (which can be easily converted to PDF by users)
+    const fileName = `${chatSession.title.replace(/[^a-zA-Z0-9\s]/g, '_')}_chat_${Date.now()}.txt`;
     const fileUri = FileSystem.documentDirectory + fileName;
     
-    await FileSystem.writeAsStringAsync(fileUri, html);
+    await FileSystem.writeAsStringAsync(fileUri, content);
 
     // Check if sharing is available
     const isAvailable = await Sharing.isAvailableAsync();
     if (isAvailable) {
       await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/html',
-        dialogTitle: 'Export Chat',
+        mimeType: 'text/plain',
+        dialogTitle: 'Export Chat Conversation',
+        UTI: 'public.plain-text',
       });
     } else {
       throw new Error('Sharing is not available on this device');
     }
 
-    // Clean up the temporary file
-    await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    // Clean up the temporary file after a delay
+    setTimeout(async () => {
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.log('Cleanup error (non-critical):', cleanupError);
+      }
+    }, 5000);
 
   } catch (error) {
     console.error('Error exporting chat:', error);
@@ -72,65 +52,100 @@ export const exportChatToPDF = async (chatSession: ChatSession) => {
   }
 };
 
-export const exportRecordingTranscript = async (recording: { title: string; transcript?: string; summary?: string; createdAt: Date }) => {
+const createTranscriptContent = (recording: { title: string; transcript?: string; summary?: string; createdAt: Date }): string => {
   if (!recording.transcript) {
     throw new Error('No transcript available to export');
   }
 
-  try {
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>${recording.title}</title>
-    <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
-        .header { border-bottom: 2px solid #ccc; margin-bottom: 20px; padding-bottom: 10px; }
-        .summary { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
-        .transcript { text-align: justify; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>${recording.title}</h1>
-        <p>Recorded on ${new Date(recording.createdAt).toLocaleDateString()}</p>
-    </div>
-    
-    ${recording.summary ? `
-    <div class="summary">
-        <h2>Summary</h2>
-        <p>${recording.summary}</p>
-    </div>
-    ` : ''}
-    
-    <div class="transcript">
-        <h2>Transcript</h2>
-        <p>${recording.transcript.replace(/\n/g, '</p><p>')}</p>
-    </div>
-</body>
-</html>
-    `;
+  const header = `${recording.title}\n${'='.repeat(recording.title.length)}\n\nRecorded on: ${new Date(recording.createdAt).toLocaleDateString()} at ${new Date(recording.createdAt).toLocaleTimeString()}\n\n`;
+  
+  const summary = recording.summary ? `SUMMARY\n${'─'.repeat(50)}\n${recording.summary}\n\n` : '';
+  
+  const transcript = `TRANSCRIPT\n${'─'.repeat(50)}\n${recording.transcript}`;
+  
+  return header + summary + transcript;
+};
 
-    const fileName = `${recording.title.replace(/[^a-zA-Z0-9]/g, '_')}_transcript_${Date.now()}.html`;
+export const exportRecordingTranscript = async (recording: { title: string; transcript?: string; summary?: string; createdAt: Date }) => {
+  try {
+    // Create plain text content
+    const content = createTranscriptContent(recording);
+    
+    // Create a text file
+    const fileName = `${recording.title.replace(/[^a-zA-Z0-9\s]/g, '_')}_transcript_${Date.now()}.txt`;
     const fileUri = FileSystem.documentDirectory + fileName;
     
-    await FileSystem.writeAsStringAsync(fileUri, html);
+    await FileSystem.writeAsStringAsync(fileUri, content);
 
     const isAvailable = await Sharing.isAvailableAsync();
     if (isAvailable) {
       await Sharing.shareAsync(fileUri, {
-        mimeType: 'text/html',
-        dialogTitle: 'Export Transcript',
+        mimeType: 'text/plain',
+        dialogTitle: 'Export Recording Transcript',
+        UTI: 'public.plain-text',
       });
     } else {
       throw new Error('Sharing is not available on this device');
     }
 
-    await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    // Clean up the temporary file after a delay
+    setTimeout(async () => {
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.log('Cleanup error (non-critical):', cleanupError);
+      }
+    }, 5000);
 
   } catch (error) {
     console.error('Error exporting transcript:', error);
+    throw error;
+  }
+};
+
+// New function to export document content
+export const exportDocumentContent = async (document: { name: string; transcript?: string; summary?: string; createdAt: Date }) => {
+  if (!document.transcript) {
+    throw new Error('No content available to export');
+  }
+
+  try {
+    const header = `${document.name}\n${'='.repeat(document.name.length)}\n\nUploaded on: ${new Date(document.createdAt).toLocaleDateString()} at ${new Date(document.createdAt).toLocaleTimeString()}\n\n`;
+    
+    const summary = document.summary ? `SUMMARY\n${'─'.repeat(50)}\n${document.summary}\n\n` : '';
+    
+    const content = `CONTENT\n${'─'.repeat(50)}\n${document.transcript}`;
+    
+    const fullContent = header + summary + content;
+    
+    // Create a text file
+    const fileName = `${document.name.replace(/[^a-zA-Z0-9\s]/g, '_')}_content_${Date.now()}.txt`;
+    const fileUri = FileSystem.documentDirectory + fileName;
+    
+    await FileSystem.writeAsStringAsync(fileUri, fullContent);
+
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'text/plain',
+        dialogTitle: 'Export Document Content',
+        UTI: 'public.plain-text',
+      });
+    } else {
+      throw new Error('Sharing is not available on this device');
+    }
+
+    // Clean up the temporary file after a delay
+    setTimeout(async () => {
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (cleanupError) {
+        console.log('Cleanup error (non-critical):', cleanupError);
+      }
+    }, 5000);
+
+  } catch (error) {
+    console.error('Error exporting document:', error);
     throw error;
   }
 };
