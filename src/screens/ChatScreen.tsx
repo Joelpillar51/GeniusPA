@@ -24,6 +24,7 @@ export const ChatScreen: React.FC = () => {
 
   useEffect(() => {
     if (selectedItem) {
+      // Always get the latest session from the store
       const existingSession = chatSessions.find(s => s.relatedItemId === selectedItem.id);
       if (existingSession) {
         setCurrentSession(existingSession);
@@ -40,8 +41,20 @@ export const ChatScreen: React.FC = () => {
         createChatSession(newSession);
         setCurrentSession(newSession);
       }
+    } else {
+      setCurrentSession(null);
     }
   }, [selectedItem]);
+
+  // Update current session when chatSessions change
+  useEffect(() => {
+    if (selectedItem && currentSession) {
+      const updatedSession = chatSessions.find(s => s.id === currentSession.id);
+      if (updatedSession) {
+        setCurrentSession(updatedSession);
+      }
+    }
+  }, [chatSessions, selectedItem, currentSession?.id]);
 
   const sendMessage = async () => {
     if (!inputText.trim() || !selectedItem || !currentSession) return;
@@ -226,7 +239,7 @@ Please format as a numbered list with clear, specific questions.`;
               className="flex-1 px-6"
               onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
-              {currentSession?.messages.length === 0 ? (
+              {!currentSession || currentSession.messages.length === 0 ? (
                 <View className="flex-1 items-center justify-center py-12">
                   <Ionicons name="chatbubble-outline" size={48} color="#9CA3AF" />
                   <Text className="text-gray-500 text-lg mt-4">Start a conversation</Text>

@@ -69,17 +69,24 @@ export const useMeetingStore = create<MeetingState>()(
         set((state) => ({ chatSessions: [...state.chatSessions, session] })),
       
       addMessageToSession: (sessionId, message) =>
-        set((state) => ({
-          chatSessions: state.chatSessions.map((s) =>
-            s.id === sessionId
-              ? {
-                  ...s,
-                  messages: [...s.messages, message],
-                  updatedAt: new Date(),
-                }
-              : s
-          ),
-        })),
+        set((state) => {
+          const sessionExists = state.chatSessions.some(s => s.id === sessionId);
+          if (!sessionExists) {
+            console.warn(`Trying to add message to non-existent session: ${sessionId}`);
+            return state;
+          }
+          return {
+            chatSessions: state.chatSessions.map((s) =>
+              s.id === sessionId
+                ? {
+                    ...s,
+                    messages: [...s.messages, message],
+                    updatedAt: new Date(),
+                  }
+                : s
+            ),
+          };
+        }),
       
       updateChatSession: (id, updates) =>
         set((state) => ({
