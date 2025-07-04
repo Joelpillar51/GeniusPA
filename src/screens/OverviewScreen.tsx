@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
+import { ProfileModal } from '../components/ProfileModal';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { RecordingButton } from '../components/RecordingButton';
 import { cn } from '../utils/cn';
