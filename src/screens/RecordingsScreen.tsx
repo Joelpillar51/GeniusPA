@@ -98,9 +98,7 @@ export const RecordingsScreen: React.FC = () => {
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">
-            {user ? `Welcome back, ${user.name.split(' ')[0]}!` : 'Recordings'}
-          </Text>
+          <Text className="text-2xl font-bold text-gray-900">Recordings</Text>
           <Text className="text-gray-600 mt-1">{recordings.length} recordings</Text>
         </View>
 
