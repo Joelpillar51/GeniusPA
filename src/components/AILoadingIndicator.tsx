@@ -89,26 +89,23 @@ export const AILoadingIndicator: React.FC<AILoadingIndicatorProps> = ({
   const stageInfo = getStageInfo();
 
   return (
-    <View className="self-start bg-white border p-4 rounded-2xl rounded-bl-md max-w-[85%]" style={{ borderColor: `${stageInfo.color}30` }}>
-      <View className="flex-row items-center">
+    <View className="self-start bg-gray-100 p-4 rounded-2xl rounded-bl-md mb-4" style={{ maxWidth: '85%', minWidth: '50%' }}>
+      <View className="flex-row items-center mb-3">
         <CircularDotSpinner 
           size={24} 
           color={stageInfo.color}
           dotCount={8}
         />
-        
-        <View className="flex-1 ml-3">
-          <Text className="text-gray-900 font-medium text-base">
-            {message || `${stageInfo.text}${dots}`}
-          </Text>
-          
-          <Text className="text-sm font-bold mt-1" style={{ color: stageInfo.color }}>
-            {Math.round(Math.max(currentProgress, 5))}%
-          </Text>
-        </View>
+        <Text className="ml-3 text-base font-semibold" style={{ color: stageInfo.color }}>
+          {Math.round(Math.max(currentProgress, 5))}%
+        </Text>
       </View>
       
-      <Text className="text-gray-400 text-xs mt-2">
+      <Text className="text-gray-800 font-medium text-base leading-relaxed mb-2">
+        {message || `${stageInfo.text}${dots}`}
+      </Text>
+      
+      <Text className="text-gray-500 text-xs">
         {new Date().toLocaleTimeString()}
       </Text>
     </View>

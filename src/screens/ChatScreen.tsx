@@ -658,12 +658,10 @@ Please format as a numbered list with clear, specific questions.`;
                   ))}
                   
                   {isLoading && (
-                    <View className="mb-4">
-                      <AILoadingIndicator 
-                        message={loadingMessage || 'AI is thinking...'} 
-                        progress={loadingProgress || 10}
-                      />
-                    </View>
+                    <AILoadingIndicator 
+                      message={loadingMessage || 'AI is thinking...'} 
+                      progress={loadingProgress || 10}
+                    />
                   )}
                 </View>
               )}
