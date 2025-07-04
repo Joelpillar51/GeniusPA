@@ -12,6 +12,7 @@ import { SummarizeButton } from '../components/SummarizeButton';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
+import { processDocumentContent } from '../utils/documentProcessor';
 
 export const DocumentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -36,17 +37,30 @@ export const DocumentsScreen: React.FC = () => {
 
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/*', 'application/pdf'],
+        type: ['text/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        await processDocument(file);
+        
+        // Show processing alert for large files
+        if (file.size && file.size > 1024 * 1024) { // 1MB
+          Alert.alert(
+            'Processing Large File',
+            `Processing "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB). This may take a moment.`,
+            [{ text: 'OK', onPress: () => processDocument(file) }]
+          );
+        } else {
+          await processDocument(file);
+        }
       }
     } catch (error) {
       console.error('Error picking document:', error);
-      Alert.alert('Error', 'Failed to pick document');
+      Alert.alert(
+        'Document Error', 
+        'Failed to load document. Please try again or choose a different file format.'
+      );
     }
   };
 
@@ -69,33 +83,37 @@ export const DocumentsScreen: React.FC = () => {
     addDocument(newDocument);
 
     try {
-      // Read file content
-      let content = '';
+      // Process document using the utility function
+      const result = await processDocumentContent(file.uri, file.name, file.mimeType);
       
-      if (file.mimeType?.includes('text')) {
-        content = await FileSystem.readAsStringAsync(file.uri);
-      } else if (file.mimeType?.includes('pdf')) {
-        // For PDF, we'll use a mock since we don't have a PDF parser
-        content = "PDF content extraction is not available in this demo. Please upload text files for full functionality.";
-      } else {
-        throw new Error('Unsupported file type');
-      }
-
-      // Update document with content only, let user decide when to summarize
+      // Update document with processed content
       updateDocument(newDocument.id, {
-        transcript: content,
+        transcript: result.content,
         isProcessing: false,
       });
+
+      // Show success message for successful processing
+      if (result.success && result.message) {
+        setTimeout(() => {
+          Alert.alert('Document Processed', result.message, [{ text: 'OK' }]);
+        }, 500);
+      }
 
     } catch (error) {
       console.error('Error processing document:', error);
       updateDocument(newDocument.id, {
+        transcript: `Document "${file.name}" encountered an error during processing.
+
+Error details: ${error instanceof Error ? error.message : 'Unknown error'}
+
+The document has been saved to your library. You can:
+1. Try uploading the document again
+2. Convert to a text format for better compatibility
+3. Use the AI Chat feature to ask questions about this document
+
+Supported formats work best: .txt, .md, .csv, and some PDFs.`,
         isProcessing: false,
       });
-      Alert.alert(
-        'Processing Failed', 
-        'Failed to process document. Please try uploading a text file.'
-      );
     }
   };
 
@@ -117,10 +135,22 @@ export const DocumentsScreen: React.FC = () => {
     );
   };
 
-  const getFileIcon = (mimeType: string) => {
-    if (mimeType.includes('pdf')) return 'document-text';
-    if (mimeType.includes('text')) return 'document-outline';
-    return 'document';
+  const getFileIcon = (mimeType: string, fileName: string) => {
+    const extension = fileName.toLowerCase().split('.').pop() || '';
+    
+    if (mimeType.includes('pdf') || extension === 'pdf') return 'document-text';
+    if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'document-outline';
+    if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'document';
+    return 'document-outline';
+  };
+
+  const getFileTypeLabel = (mimeType: string, fileName: string) => {
+    const extension = fileName.toLowerCase().split('.').pop() || '';
+    
+    if (mimeType.includes('pdf') || extension === 'pdf') return 'PDF';
+    if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'Text';
+    if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'Word';
+    return 'Doc';
   };
 
   return (
@@ -140,11 +170,14 @@ export const DocumentsScreen: React.FC = () => {
           >
             <Ionicons name="add" size={32} color="white" />
           </Pressable>
-          <Text className="mt-4 text-gray-600 text-center px-6">
-            Upload a document to transcribe and analyze
+          <Text className="mt-4 text-gray-600 text-center px-6 font-medium">
+            Upload a document to analyze with AI
           </Text>
           <Text className="text-gray-500 text-sm text-center px-6 mt-2">
-            Supports text files and PDFs
+            Supports text files (.txt, .md, .csv) and PDFs
+          </Text>
+          <Text className="text-gray-400 text-xs text-center px-6 mt-1">
+            Text files work best • PDFs will be processed automatically
           </Text>
         </View>
 
@@ -170,18 +203,27 @@ export const DocumentsScreen: React.FC = () => {
                     <View className="flex-1">
                       <View className="flex-row items-center mb-2">
                         <Ionicons
-                          name={getFileIcon(document.type)}
+                          name={getFileIcon(document.type, document.name)}
                           size={20}
                           color="#6B7280"
                         />
                         <View className="ml-2 flex-1">
-                          <EditableText
-                            text={document.name}
-                            onSave={(newName) => updateDocument(document.id, { name: newName })}
-                            placeholder="Document name"
-                            maxLength={100}
-                            textStyle="font-semibold text-gray-900"
-                          />
+                          <View className="flex-row items-center">
+                            <View className="flex-1">
+                              <EditableText
+                                text={document.name}
+                                onSave={(newName) => updateDocument(document.id, { name: newName })}
+                                placeholder="Document name"
+                                maxLength={100}
+                                textStyle="font-semibold text-gray-900"
+                              />
+                            </View>
+                            <View className="ml-2 px-2 py-1 bg-gray-100 rounded-md">
+                              <Text className="text-gray-600 text-xs font-medium">
+                                {getFileTypeLabel(document.type, document.name)}
+                              </Text>
+                            </View>
+                          </View>
                         </View>
                       </View>
                       
@@ -238,19 +280,18 @@ export const DocumentsScreen: React.FC = () => {
                           Content
                         </Text>
                       </View>
-                      {document.transcript === "PDF content extraction is not available in this demo. Please upload text files for full functionality." ? (
-                        <Text className="text-gray-500 text-sm italic">
-                          {document.transcript}
+                      <EditableText
+                        text={document.transcript}
+                        onSave={(newTranscript) => updateDocument(document.id, { transcript: newTranscript })}
+                        multiline
+                        placeholder="Document content"
+                        textStyle="text-gray-800 text-sm leading-relaxed"
+                        showEditIcon={true}
+                      />
+                      {document.transcript.includes('📄') && (
+                        <Text className="text-emerald-600 text-xs mt-2 font-medium">
+                          💡 Tap to edit content or add text manually
                         </Text>
-                      ) : (
-                        <EditableText
-                          text={document.transcript}
-                          onSave={(newTranscript) => updateDocument(document.id, { transcript: newTranscript })}
-                          multiline
-                          placeholder="Document content"
-                          textStyle="text-gray-800 text-sm leading-relaxed"
-                          showEditIcon={true}
-                        />
                       )}
                     </View>
                   )}
