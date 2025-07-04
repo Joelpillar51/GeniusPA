@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,16 +13,88 @@ import { UpgradeModal } from '../components/UpgradeModal';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 import { processDocumentContent } from '../utils/documentProcessor';
+import { processDocumentFromUrl } from '../utils/urlDocumentProcessor';
 
 export const DocumentsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { documents, addDocument, updateDocument, deleteDocument } = useMeetingStore();
   const { canAddDocument, addDocumentUsage, removeDocumentUsage } = useSubscriptionStore();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
+  const [isProcessingUrl, setIsProcessingUrl] = useState(false);
 
   const sortedDocuments = documents.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  const processUrl = async () => {
+    if (!urlInput.trim()) {
+      Alert.alert('Error', 'Please enter a valid URL');
+      return;
+    }
+
+    // Check subscription limits
+    const documentCheck = canAddDocument();
+    if (!documentCheck.allowed) {
+      Alert.alert('Document Limit Reached', documentCheck.reason!, [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+      ]);
+      return;
+    }
+
+    setIsProcessingUrl(true);
+    
+    try {
+      // Process the URL and extract content
+      const processedUrl = await processDocumentFromUrl(urlInput.trim());
+      
+      if (processedUrl.success && processedUrl.extractedText) {
+        // Create document from URL content
+        const newDocument: Document = {
+          id: Date.now().toString(),
+          name: processedUrl.title,
+          uri: processedUrl.url,
+          type: `url/${processedUrl.contentType}`,
+          createdAt: new Date(),
+          isProcessing: false,
+          transcript: processedUrl.extractedText,
+        };
+
+        // Track usage
+        const usageAdded = addDocumentUsage();
+        if (!usageAdded) {
+          console.warn('Failed to track document usage');
+        }
+
+        addDocument(newDocument);
+        setUrlInput('');
+        
+        Alert.alert(
+          'URL Processed Successfully!',
+          `Content from "${processedUrl.title}" has been extracted and added to your documents.`,
+          [{ text: 'OK' }]
+        );
+        
+      } else {
+        // Processing failed
+        Alert.alert(
+          'URL Processing Failed',
+          processedUrl.error || 'Could not extract content from this URL. Please try:\n\n• Checking the URL is correct and accessible\n• Using a different webpage or document URL\n• Uploading a file instead',
+          [{ text: 'Try Again' }]
+        );
+      }
+    } catch (error) {
+      console.error('URL processing error:', error);
+      Alert.alert(
+        'Processing Error',
+        'Failed to process the URL. Please check your internet connection and try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsProcessingUrl(false);
+    }
+  };
 
   const pickDocument = async () => {
     // Check subscription limits
@@ -138,6 +210,7 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
   const getFileIcon = (mimeType: string, fileName: string) => {
     const extension = fileName.toLowerCase().split('.').pop() || '';
     
+    if (mimeType.startsWith('url/')) return 'link';
     if (mimeType.includes('pdf') || extension === 'pdf') return 'document-text';
     if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'document-outline';
     if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'document';
@@ -147,6 +220,10 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
   const getFileTypeLabel = (mimeType: string, fileName: string) => {
     const extension = fileName.toLowerCase().split('.').pop() || '';
     
+    if (mimeType.startsWith('url/')) {
+      const urlType = mimeType.split('/')[1];
+      return urlType === 'webpage' ? 'Web' : urlType.toUpperCase();
+    }
     if (mimeType.includes('pdf') || extension === 'pdf') return 'PDF';
     if (mimeType.includes('text') || ['txt', 'md', 'csv'].includes(extension)) return 'Text';
     if (mimeType.includes('word') || ['doc', 'docx'].includes(extension)) return 'Word';
@@ -158,54 +235,67 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
       <View className="flex-1">
         {/* Header */}
         <View className="px-6 py-4 border-b border-gray-200">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-900">Documents</Text>
-              <Text className="text-gray-600 mt-1">{documents.length} documents</Text>
-            </View>
-            <Pressable
-              onPress={() => navigation.navigate('DocumentChat')}
-              className="bg-emerald-500 px-4 py-2 rounded-xl flex-row items-center"
-            >
-              <Ionicons name="chatbubbles" size={16} color="white" />
-              <Text className="text-white font-semibold ml-2 text-sm">AI Chat</Text>
-            </Pressable>
-          </View>
+          <Text className="text-2xl font-bold text-gray-900">Documents</Text>
+          <Text className="text-gray-600 mt-1">{documents.length} documents</Text>
         </View>
 
-        {/* New AI Chat Feature Notice */}
-        <View className="mx-6 my-4 p-4 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-2xl border border-emerald-200">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-emerald-800 font-bold text-lg mb-1">🚀 New: AI Document Chat</Text>
-              <Text className="text-emerald-700 text-sm">Upload files or paste URLs to chat with AI about content</Text>
-            </View>
+        {/* Upload Section */}
+        <View className="py-6 px-6 border-b border-gray-200">
+          {/* File Upload */}
+          <View className="items-center mb-6">
             <Pressable
-              onPress={() => navigation.navigate('DocumentChat')}
-              className="bg-emerald-500 px-4 py-2 rounded-xl"
+              onPress={pickDocument}
+              className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center mb-4"
             >
-              <Text className="text-white font-semibold text-sm">Try It</Text>
+              <Ionicons name="add" size={32} color="white" />
             </Pressable>
+            <Text className="text-gray-600 text-center font-medium">
+              Upload a document to analyze with AI
+            </Text>
+            <Text className="text-gray-500 text-sm text-center mt-1">
+              Supports text files (.txt, .md, .csv) and PDFs
+            </Text>
           </View>
-        </View>
 
-        {/* Upload Button */}
-        <View className="py-8 items-center border-b border-gray-200">
-          <Pressable
-            onPress={pickDocument}
-            className="w-20 h-20 rounded-full bg-emerald-500 items-center justify-center"
-          >
-            <Ionicons name="add" size={32} color="white" />
-          </Pressable>
-          <Text className="mt-4 text-gray-600 text-center px-6 font-medium">
-            Upload a document to analyze with AI
-          </Text>
-          <Text className="text-gray-500 text-sm text-center px-6 mt-2">
-            Supports text files (.txt, .md, .csv) and PDFs
-          </Text>
-          <Text className="text-gray-400 text-xs text-center px-6 mt-1">
-            Text files work best • PDFs will be processed automatically
-          </Text>
+          {/* URL Input Section */}
+          <View className="border-t border-gray-100 pt-6">
+            <View className="flex-row items-center mb-4">
+              <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center mr-3">
+                <Ionicons name="link" size={18} color="#3B82F6" />
+              </View>
+              <Text className="text-gray-900 font-medium text-base">Or paste a URL</Text>
+            </View>
+            
+            <View className="flex-row items-center">
+              <TextInput
+                value={urlInput}
+                onChangeText={setUrlInput}
+                placeholder="https://example.com/article or document"
+                className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-base mr-3"
+                keyboardType="url"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!isProcessingUrl}
+              />
+              <Pressable
+                onPress={processUrl}
+                disabled={!urlInput.trim() || isProcessingUrl}
+                className={`px-4 py-3 rounded-xl ${
+                  urlInput.trim() && !isProcessingUrl ? 'bg-blue-500' : 'bg-gray-300'
+                }`}
+              >
+                {isProcessingUrl ? (
+                  <Text className="text-white font-medium">...</Text>
+                ) : (
+                  <Text className="text-white font-medium">Add</Text>
+                )}
+              </Pressable>
+            </View>
+            
+            <Text className="text-gray-400 text-xs mt-2">
+              Web articles, documentation, and online text content work best
+            </Text>
+          </View>
         </View>
 
         {/* Documents List */}
@@ -259,6 +349,12 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
                         {new Date(document.createdAt).toLocaleTimeString()}
                       </Text>
                       
+                      {document.type.startsWith('url/') && (
+                        <Text className="text-blue-600 text-xs mt-1" numberOfLines={1}>
+                          🔗 {document.uri}
+                        </Text>
+                      )}
+                      
                       {document.isProcessing && (
                         <Text className="text-emerald-500 text-sm mt-1">
                           Processing...
@@ -266,14 +362,14 @@ Supported formats work best: .txt, .md, .csv, and some PDFs.`,
                       )}
                       
                       {document.transcript && !document.isProcessing && !document.summary && 
-                       document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
+                       document.transcript.length > 100 && (
                         <Text className="text-emerald-600 text-sm mt-1 font-medium">
                           ✓ Ready to summarize
                         </Text>
                       )}
                       
                       {document.transcript && !document.isProcessing && !document.summary && 
-                       document.transcript !== "PDF content extraction is not available in this demo. Please upload text files for full functionality." && (
+                       document.transcript.length > 100 && (
                         <View className="mt-2">
                           <SummarizeButton
                             content={document.transcript}
