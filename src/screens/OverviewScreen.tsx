@@ -8,6 +8,7 @@ import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { RecordingButton } from '../components/RecordingButton';
+import { navigateToSubscription } from '../utils/subscriptionNavigation';
 import { cn } from '../utils/cn';
 
 export const OverviewScreen: React.FC = () => {
@@ -73,11 +74,11 @@ export const OverviewScreen: React.FC = () => {
         
         {/* Subscription Badge */}
         <Pressable 
-          onPress={() => plan === 'free' && setShowUpgradeModal(true)}
+          onPress={() => plan === 'free' && navigateToSubscription(navigation)}
           className={cn(
             "mt-3 self-start px-3 py-1 rounded-full",
             plan === 'free' 
-              ? "bg-gray-100" 
+              ? "bg-gray-100 border border-gray-300" 
               : plan === 'pro'
               ? "bg-emerald-100"
               : "bg-purple-100"
@@ -91,7 +92,7 @@ export const OverviewScreen: React.FC = () => {
               ? "text-emerald-700"
               : "text-purple-700"
           )}>
-            {plan === 'free' ? 'Free Plan' : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`}
+            {plan === 'free' ? 'Free Plan • Tap to Upgrade' : `${plan.charAt(0).toUpperCase() + plan.slice(1)} Plan`}
           </Text>
         </Pressable>
       </View>
@@ -147,8 +148,8 @@ export const OverviewScreen: React.FC = () => {
           {/* Upgrade prompt for free users */}
           {plan === 'free' && (
             <Pressable 
-              onPress={() => setShowUpgradeModal(true)}
-              className="bg-emerald-500 rounded-2xl p-4 mb-6"
+              onPress={() => navigateToSubscription(navigation)}
+              className="bg-emerald-500 rounded-2xl p-4 mb-6 active:bg-emerald-600"
             >
               <View className="flex-row items-center justify-between">
                 <View className="flex-1">

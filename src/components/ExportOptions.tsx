@@ -5,6 +5,8 @@ import { exportChatAsDocument, exportTranscriptAsDocument, exportDocumentAsDocum
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { ChatSession, Recording, Document } from '../types/meeting';
 import { UpgradeModal } from './UpgradeModal';
+import { useNavigation } from '@react-navigation/native';
+import { navigateToSubscription } from '../utils/subscriptionNavigation';
 import { cn } from '../utils/cn';
 
 interface ExportOptionsProps {
@@ -20,6 +22,7 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
   data,
   type,
 }) => {
+  const navigation = useNavigation<any>();
   const [isExporting, setIsExporting] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { canExport } = useSubscriptionStore();
@@ -30,7 +33,10 @@ export const ExportOptions: React.FC<ExportOptionsProps> = ({
     if (!exportCheck.allowed) {
       Alert.alert('Upgrade Required', exportCheck.reason!, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+        { text: 'Upgrade Now', onPress: () => {
+          onClose();
+          navigateToSubscription(navigation);
+        }},
       ]);
       return;
     }

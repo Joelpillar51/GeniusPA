@@ -240,6 +240,22 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
         });
       },
 
+      // Strict enforcement methods
+      enforceRecordingLimit: () => {
+        const result = get().canRecord();
+        return result.allowed;
+      },
+
+      enforceDocumentLimit: () => {
+        const result = get().canAddDocument();
+        return result.allowed;
+      },
+
+      enforceAIChatLimit: (itemId: string) => {
+        const result = get().canUseAIChat(itemId);
+        return result.allowed;
+      },
+
       getTodayUsage: () => {
         const state = get();
         const today = getTodayString();

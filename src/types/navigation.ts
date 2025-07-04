@@ -7,6 +7,7 @@ export type RootStackParamList = {
     documentId: string;
   };
   Profile: undefined;
+  Subscription: undefined;
   DocumentChat: undefined;
 };
 

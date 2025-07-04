@@ -166,7 +166,7 @@ export const ProfileScreen: React.FC = () => {
               className={cn(
                 "mt-4 px-4 py-2 rounded-full border",
                 plan === 'free' 
-                  ? "bg-gray-50 border-gray-200" 
+                  ? "bg-orange-50 border-orange-200 border-2" 
                   : plan === 'pro'
                   ? "bg-emerald-50 border-emerald-200"
                   : "bg-purple-50 border-purple-200"
@@ -175,7 +175,7 @@ export const ProfileScreen: React.FC = () => {
               <Text className={cn(
                 "font-semibold text-sm capitalize",
                 plan === 'free' 
-                  ? "text-gray-700" 
+                  ? "text-orange-700" 
                   : plan === 'pro'
                   ? "text-emerald-700"
                   : "text-purple-700"
@@ -277,9 +277,12 @@ export const ProfileScreen: React.FC = () => {
             {plan === 'free' && (
               <Pressable 
                 onPress={() => navigation.navigate('Subscription' as never)}
-                className="bg-emerald-500 rounded-xl py-3 items-center"
+                className="bg-emerald-500 rounded-xl py-3 items-center active:bg-emerald-600"
               >
-                <Text className="text-white font-semibold">Upgrade for More</Text>
+                <View className="flex-row items-center">
+                  <Ionicons name="star" size={18} color="white" />
+                  <Text className="text-white font-semibold ml-2">Upgrade for More</Text>
+                </View>
               </Pressable>
             )}
           </View>

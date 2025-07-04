@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useMeetingStore } from '../state/meetingStore';
 import { ChatSession, ChatMessage, Recording, Document } from '../types/meeting';
@@ -11,10 +12,12 @@ import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { CircularDotSpinner } from '../components/CircularDotSpinner';
 import { MarkdownText } from '../components/MarkdownText';
+import { navigateToSubscription } from '../utils/subscriptionNavigation';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<any>();
   const { recordings, documents, chatSessions, createChatSession, addMessageToSession } = useMeetingStore();
   const { canUseAIChat, setChatProject } = useSubscriptionStore();
   const [inputText, setInputText] = useState('');
@@ -223,7 +226,7 @@ Please provide a thoughtful, accurate, and helpful response. You can use your ge
           setIsLoading(false);
           
           setTimeout(() => {
-            setShowUpgradeModal(true);
+            navigateToSubscription(navigation);
           }, 1000);
           return;
         }
@@ -532,7 +535,7 @@ Please format as a numbered list with clear, specific questions.`;
                         if (!chatCheck.allowed) {
                           Alert.alert('Upgrade Required', chatCheck.reason!, [
                             { text: 'Cancel', style: 'cancel' },
-                            { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+                            { text: 'Upgrade Now', onPress: () => navigateToSubscription(navigation) },
                           ]);
                           return;
                         }
@@ -706,20 +709,7 @@ Please format as a numbered list with clear, specific questions.`;
           />
         )}
         
-        {/* Upgrade Modal */}
-        <UpgradeModal
-          visible={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          context={{
-            feature: 'AI Chat',
-            limitation: 'Free users can only chat about one project and must ask questions related to that content.',
-            benefits: [
-              'Chat about 10 projects with Pro',
-              'Unlimited AI conversations with Premium',
-              'Ask general questions beyond your content',
-            ],
-          }}
-        />
+        {/* Upgrade prompts now navigate directly to subscription screen */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

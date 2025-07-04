@@ -11,6 +11,7 @@ import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { TruncatedText } from '../components/TruncatedText';
 import { CircularDotSpinner } from '../components/CircularDotSpinner';
+import { navigateToSubscription } from '../utils/subscriptionNavigation';
 import { Document } from '../types/meeting';
 import { getOpenAIChatResponse, getOpenAITextResponse } from '../api/chat-service';
 import { processDocumentFromUrl, getSupportedUrlTypes } from '../utils/urlDocumentProcessor';
@@ -40,7 +41,7 @@ export const DocumentsScreen: React.FC = () => {
     if (!documentCheck.allowed) {
       Alert.alert('Document Limit Reached', documentCheck.reason!, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+        { text: 'Upgrade Now', onPress: () => navigateToSubscription(navigation) },
       ]);
       return;
     }
@@ -366,21 +367,7 @@ export const DocumentsScreen: React.FC = () => {
           </View>
         </ScrollView>
         
-        {/* Upgrade Modal */}
-        <UpgradeModal
-          visible={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-          context={{
-            feature: 'Documents',
-            limitation: 'Free users can only add 1 document total (even after deletion).',
-            benefits: [
-              'Add up to 100 documents with Pro',
-              'Unlimited documents with Premium',
-              'Process larger web content faster',
-              'Access to premium URL processing features',
-            ],
-          }}
-        />
+        {/* Upgrade prompts now navigate directly to subscription screen */}
       </View>
     </SafeAreaView>
   );

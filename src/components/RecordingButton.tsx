@@ -12,6 +12,8 @@ import { VoiceWaves } from './VoiceWaves';
 import { RecordingIndicator } from './RecordingIndicator';
 import { CircularWaves } from './CircularWaves';
 import { ProcessingPulse } from './ProcessingPulse';
+import { useNavigation } from '@react-navigation/native';
+import { navigateToSubscription } from '../utils/subscriptionNavigation';
 import { cn } from '../utils/cn';
 
 interface RecordingButtonProps {
@@ -19,6 +21,7 @@ interface RecordingButtonProps {
 }
 
 export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingComplete }) => {
+  const navigation = useNavigation<any>();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -35,7 +38,7 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
     if (!recordingCheck.allowed) {
       Alert.alert('Recording Limit Reached', recordingCheck.reason!, [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+        { text: 'Upgrade Now', onPress: () => navigateToSubscription(navigation) },
       ]);
       return;
     }
@@ -65,15 +68,15 @@ export const RecordingButton: React.FC<RecordingButtonProps> = ({ onRecordingCom
         setRecordingDuration(prev => {
           const newDuration = prev + 1;
           
-          // Check if we've hit the duration limit
+          // Check if we've hit the duration limit  
           if (limits.maxRecordingDuration !== -1 && newDuration >= limits.maxRecordingDuration) {
             stopRecording();
             Alert.alert(
               'Recording Limit Reached',
-              `Free users can record up to ${Math.floor(limits.maxRecordingDuration / 60)} minutes. Upgrade to Pro for longer recordings.`,
+              `${plan === 'free' ? 'Free users' : 'Your current plan'} can record up to ${Math.floor(limits.maxRecordingDuration / 60)} minutes. Upgrade for longer recordings.`,
               [
                 { text: 'OK' },
-                { text: 'Upgrade', onPress: () => setShowUpgradeModal(true) },
+                { text: 'Upgrade Now', onPress: () => navigateToSubscription(navigation) },
               ]
             );
           }
