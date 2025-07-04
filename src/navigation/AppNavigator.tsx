@@ -7,6 +7,7 @@ import { AuthScreen } from '../screens/AuthScreen';
 import { TabNavigator } from './TabNavigator';
 import { RecordingDetailScreen } from '../screens/RecordingDetailScreen';
 import { DocumentDetailScreen } from '../screens/DocumentDetailScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -58,6 +59,13 @@ export const AppNavigator: React.FC = () => {
         component={DocumentDetailScreen}
         options={{
           presentation: 'modal',
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
           headerShown: false,
         }}
       />

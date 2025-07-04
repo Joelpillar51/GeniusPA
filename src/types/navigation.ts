@@ -6,6 +6,7 @@ export type RootStackParamList = {
   DocumentDetail: {
     documentId: string;
   };
+  Profile: undefined;
 };
 
 export type TabParamList = {

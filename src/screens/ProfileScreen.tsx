@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, TextInput, Alert, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../state/authStore';
 import { useMeetingStore } from '../state/meetingStore';
 import { useSubscriptionStore } from '../state/subscriptionStore';
 import { UserPreferences } from '../types/auth';
 import { UpgradeModal } from '../components/UpgradeModal';
+import { SubscriptionModal } from '../components/SubscriptionModal';
 import { cn } from '../utils/cn';
 
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { user, signOut, updateUser, updatePreferences } = useAuthStore();
   const { recordings, documents, chatSessions } = useMeetingStore();
   const { plan, limits, getTodayUsage } = useSubscriptionStore();
   const [isEditing, setIsEditing] = useState(false);
-  const [editName, setEditName] = useState(user?.name || '');
+  const [editName, setEditName] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
+  // Update editName when user changes
+  useEffect(() => {
+    if (user?.name) {
+      setEditName(user.name);
+    }
+  }, [user?.name]);
 
   if (!user) {
     console.log('ProfileScreen: No user found, redirecting...');
@@ -43,6 +54,7 @@ export const ProfileScreen: React.FC = () => {
           onPress: () => {
             console.log('Signing out user...');
             signOut();
+            navigation.goBack();
           }
         },
       ]
@@ -74,7 +86,15 @@ export const ProfileScreen: React.FC = () => {
     <SafeAreaView className="flex-1 bg-white">
       {/* Header */}
       <View className="px-6 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">Profile</Text>
+        <View className="flex-row items-center">
+          <Pressable
+            onPress={() => navigation.goBack()}
+            className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 mr-4"
+          >
+            <Ionicons name="arrow-back" size={24} color="#374151" />
+          </Pressable>
+          <Text className="text-2xl font-bold text-gray-900">Profile</Text>
+        </View>
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
@@ -122,7 +142,7 @@ export const ProfileScreen: React.FC = () => {
             
             {/* Subscription Badge */}
             <Pressable 
-              onPress={() => plan === 'free' && setShowUpgradeModal(true)}
+              onPress={() => plan === 'free' && setShowSubscriptionModal(true)}
               className={cn(
                 "mt-4 px-4 py-2 rounded-full border",
                 plan === 'free' 
@@ -185,7 +205,7 @@ export const ProfileScreen: React.FC = () => {
             
             {plan === 'free' && (
               <Pressable 
-                onPress={() => setShowUpgradeModal(true)}
+                onPress={() => setShowSubscriptionModal(true)}
                 className="bg-emerald-500 rounded-xl py-3 items-center"
               >
                 <Text className="text-white font-semibold">Upgrade for More</Text>
@@ -361,6 +381,12 @@ export const ProfileScreen: React.FC = () => {
             'All export formats',
           ],
         }}
+      />
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
       />
     </SafeAreaView>
   );
