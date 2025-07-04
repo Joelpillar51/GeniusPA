@@ -3,6 +3,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { cn } from '../utils/cn';
 import { EditableText } from './EditableText';
+import { MarkdownText } from './MarkdownText';
 
 interface TruncatedTextProps {
   text: string;
@@ -13,6 +14,7 @@ interface TruncatedTextProps {
   textStyle?: string;
   showEditIcon?: boolean;
   label?: string;
+  useMarkdown?: boolean;
 }
 
 export const TruncatedText: React.FC<TruncatedTextProps> = ({
@@ -23,7 +25,8 @@ export const TruncatedText: React.FC<TruncatedTextProps> = ({
   placeholder = "No content available",
   textStyle = "text-gray-800 text-sm leading-relaxed",
   showEditIcon = true,
-  label = "Content"
+  label = "Content",
+  useMarkdown = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -104,12 +107,19 @@ export const TruncatedText: React.FC<TruncatedTextProps> = ({
       ) : (
         <>
           <Pressable onPress={shouldTruncate() ? toggleExpanded : undefined}>
-            <Text className={textStyle}>
-              {displayText}
-              {shouldTruncate() && !isExpanded && (
-                <Text className="text-blue-600 font-medium"> ...</Text>
-              )}
-            </Text>
+            {useMarkdown ? (
+              <MarkdownText 
+                text={displayText + (shouldTruncate() && !isExpanded ? ' ...' : '')}
+                baseTextStyle={textStyle}
+              />
+            ) : (
+              <Text className={textStyle}>
+                {displayText}
+                {shouldTruncate() && !isExpanded && (
+                  <Text className="text-blue-600 font-medium"> ...</Text>
+                )}
+              </Text>
+            )}
             {shouldTruncate() && !isExpanded && (
               <View className="mt-1 px-2 py-1 bg-blue-50 rounded-md self-start">
                 <Text className="text-blue-600 text-xs font-medium">

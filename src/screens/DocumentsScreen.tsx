@@ -326,6 +326,7 @@ export const DocumentsScreen: React.FC = () => {
                             textStyle="text-gray-700 text-sm italic"
                             showEditIcon={false}
                             label="Summary"
+                            useMarkdown={true}
                           />
                         </View>
                       )}

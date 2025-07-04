@@ -10,6 +10,7 @@ import { ExportOptions } from '../components/ExportOptions';
 import { UpgradeModal } from '../components/UpgradeModal';
 import { AILoadingIndicator } from '../components/AILoadingIndicator';
 import { CircularDotSpinner } from '../components/CircularDotSpinner';
+import { MarkdownText } from '../components/MarkdownText';
 import { cn } from '../utils/cn';
 
 export const ChatScreen: React.FC = () => {
@@ -638,14 +639,16 @@ Please format as a numbered list with clear, specific questions.`;
                           : "self-start bg-gray-200"
                       )}
                     >
-                      <Text
-                        className={cn(
-                          "text-base",
-                          message.role === 'user' ? "text-white" : "text-gray-900"
-                        )}
-                      >
-                        {message.content}
-                      </Text>
+                      {message.role === 'user' ? (
+                        <Text className="text-base text-white">
+                          {message.content}
+                        </Text>
+                      ) : (
+                        <MarkdownText 
+                          text={message.content}
+                          baseTextStyle="text-base text-gray-900"
+                        />
+                      )}
                       <Text
                         className={cn(
                           "text-xs mt-1",
